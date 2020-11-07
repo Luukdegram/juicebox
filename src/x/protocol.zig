@@ -1,15 +1,15 @@
 /// Constants that belong to the X protocol
 pub const Values = struct {
-    pub const X_GC_FOREGROUND = 4;
-    pub const X_GC_BACKGROUND = 8;
-    pub const X_GC_GRAPHICS_EXPOSURES = 65536;
-    pub const X_GX_COPY = 3;
-    pub const X_BACK_PIXEL = 2;
-    pub const X_EVENT_MASK = 2048;
-    pub const X_KEY_PRESS = 2;
-    pub const X_KEY_RELEASE = 3;
-    pub const X_BUTTON_PRESS = 4;
-    pub const X_BUTTON_RELEASE = 5;
+    pub const GC_FOREGROUND = 4;
+    pub const GC_BACKGROUND = 8;
+    pub const GC_GRAPHICS_EXPOSURES = 65536;
+    pub const GX_COPY = 3;
+    pub const BACK_PIXEL = 2;
+    pub const EVENT_MASK = 2048;
+    pub const KEY_PRESS = 2;
+    pub const KEY_RELEASE = 3;
+    pub const BUTTON_PRESS = 4;
+    pub const BUTTON_RELEASE = 5;
 };
 
 /// X Protocol Types, makes it easier to read data
@@ -123,4 +123,22 @@ pub const IdRangeReply = extern struct {
     start_id: u32,
     count: u32,
     pad1: [16]u8,
+};
+pub const QueryExtensionRequest = extern struct {
+    major_opcode: u8 = 98,
+    pad0: u8 = 0,
+    length: u16,
+    name_len: u16,
+    pad1: [2]u8 = [_]u8{ 0, 0 },
+};
+pub const QueryExtensionReply = extern struct {
+    response_type: u8,
+    pad0: u8,
+    sequence: u16,
+    length: u32,
+    present: u8,
+    major_opcode: u8,
+    first_event: u8,
+    first_error: u8,
+    pad1: [20]u8,
 };

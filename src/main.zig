@@ -9,6 +9,8 @@ pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     var connection = try Connection.init(&gpa.allocator);
+    defer connection.disconnect();
     log.info("Initialized connection with X11 server: {}", .{connection.status});
+
     while (connection.status == .ok) {}
 }

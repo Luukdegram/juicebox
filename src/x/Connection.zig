@@ -51,8 +51,32 @@ const Setup = struct {
 /// Connection status
 const Status = enum {
     ok,
-    authenticating,
+    authenticate,
     setup_failed,
+};
+
+/// xid is used to store the last generated xid which
+/// is needed to generate the next one
+var xid: Xid = undefined;
+
+/// Xid is used to generate new unique id's needed to build new components
+const Xid = struct {
+    last: u32,
+    max: u32,
+    base: u32,
+    inc: u32,
+
+    fn init(connection: Connection) Xid {
+        // we could use @setRuntimeSafety(false) in this case
+        const inc: i32 = @bitCast(i32, connection.setup.mask) &
+            -@bitCast(i32, connection.setup.mask);
+        return Xid{
+            .last = 0,
+            .max = 0,
+            .base = connection.setup.base,
+            .inc = @bitCast(u32, inc),
+        };
+    }
 };
 
 /// Initializes a new connection with the X11 server and returns a handle
@@ -67,6 +91,72 @@ pub fn init(gpa: *Allocator) ConnectionError!Connection {
         };
 
     return ConnectionError.DisplayNotFound;
+}
+
+/// Generates a new XID
+pub fn genXid(self: *Connection) !u32 {
+    var ret: u32 = 0;
+    if (self.status != .ok) {
+        return error.InvalidConnection;
+    }
+
+    const temp = xid.max -% xid.inc;
+    if (xid.last >= temp) {
+        if (xid.last == 0) {
+            xid.max = self.setup.mask;
+        } else {
+            if (!try supportsExtension(self, "XC-MISC")) {
+                return error.MiscUnsupported;
+            }
+
+            const xid_range_request = protocol.IdRangeRequest{};
+            var parts: [1]os.iovec_const = undefined;
+            parts[0].iov_base = @ptrCast([*]const u8, &xid_range_request);
+            parts[0].iov_len = @sizeOf(protocol.IdRangeRequest);
+
+            try self.handle.writevAll(&parts);
+            const reply = try self.handle.reader().readStruct(protocol.IdRangeReply);
+
+            xid.last = reply.start_id;
+            xid.max = reply.start_id + (reply.count - 1) * xid.inc;
+        }
+    } else {
+        xid.last += xid.inc;
+    }
+    ret = xid.last | xid.base;
+    return ret;
+}
+
+/// Disconnects from X and frees all memory
+pub fn disconnect(self: *Connection) void {
+    self.gpa.free(self.formats);
+    for (self.screens) |screen| {
+        for (screen.depths) |depth| self.gpa.free(depth.visual_types);
+        self.gpa.free(screen.depths);
+    }
+    self.gpa.free(self.screens);
+    self.handle.close();
+    self.* = undefined;
+}
+
+/// Checks if the X11 server supports the given extension or not
+fn supportsExtension(self: *Connection, ext_name: []const u8) !bool {
+    const request = protocol.QueryExtensionRequest{
+        .length = @intCast(u16, @sizeOf(protocol.QueryExtensionRequest) + ext_name.len + xpad(ext_name.len)) / 4,
+        .name_len = @intCast(u16, ext_name.len),
+    };
+    var parts: [3]os.iovec_const = undefined;
+    parts[0].iov_base = @ptrCast([*]const u8, &request);
+    parts[0].iov_len = @sizeOf(protocol.QueryExtensionRequest);
+    parts[1].iov_base = ext_name.ptr;
+    parts[1].iov_len = ext_name.len;
+    parts[2].iov_base = &request.pad1;
+    parts[2].iov_len = xpad(ext_name.len);
+
+    try self.handle.writevAll(&parts);
+    const reply = try self.handle.reader().readStruct(protocol.QueryExtensionReply);
+
+    return reply.present != 0;
 }
 
 /// Struct containing the pieces of a parsed display
@@ -218,13 +308,14 @@ fn connect(gpa: *Allocator, file: fs.File, auth: Auth) !Connection {
         .setup = undefined,
         .formats = undefined,
         .screens = undefined,
-        .status = .authenticating,
+        .status = .authenticate,
     };
 
     try writeSetup(file, auth);
     try readSetup(gpa, &conn);
     if (conn.status == .ok) {
-        //conn.xid = Connection.Xid.init(conn);
+        // set the initial xid generator
+        xid = Xid.init(conn);
     }
 
     return conn;
@@ -289,7 +380,7 @@ fn readSetup(gpa: *Allocator, connection: *Connection) !void {
     connection.status = switch (header.status) {
         0 => .setup_failed,
         1 => .ok,
-        2 => .authenticating,
+        2 => .authenticate,
         else => return error.InvalidStatus,
     };
 
@@ -301,7 +392,7 @@ fn readSetup(gpa: *Allocator, connection: *Connection) !void {
 /// Parses the setup received from the connection into
 /// seperate struct types
 fn parseSetup(conn: *Connection, buffer: []u8) !void {
-    var allocator = conn.gpa;
+    const allocator = conn.gpa;
 
     var setup: protocol.Setup = undefined;
     var index: usize = parseSetupType(&setup, buffer[0..]);
@@ -315,55 +406,52 @@ fn parseSetup(conn: *Connection, buffer: []u8) !void {
     const vendor = buffer[index .. index + setup.vendor_len];
     index += vendor.len;
 
-    var formats = std.ArrayList(Format).init(allocator);
-    errdefer formats.deinit();
-    var format_counter: usize = 0;
-    while (format_counter < setup.pixmap_formats_len) : (format_counter += 1) {
+    const formats = try allocator.alloc(Format, setup.pixmap_formats_len);
+    errdefer allocator.free(formats);
+    for (formats) |*f| {
         var format: protocol.Format = undefined;
         index += parseSetupType(&format, buffer[index..]);
-        try formats.append(.{
+        f.* = .{
             .depth = format.depth,
             .bits_per_pixel = format.bits_per_pixel,
             .scanline_pad = format.scanline_pad,
-        });
+        };
     }
 
-    var screens = std.ArrayList(Screen).init(allocator);
-    errdefer screens.deinit();
-    var screen_counter: usize = 0;
-    while (screen_counter < setup.roots_len) : (screen_counter += 1) {
+    const screens = try allocator.alloc(Screen, setup.roots_len);
+    errdefer allocator.free(screens);
+    for (screens) |*s| {
         var screen: protocol.Screen = undefined;
         index += parseSetupType(&screen, buffer[index..]);
 
-        var depths = std.ArrayList(Depth).init(allocator);
-        errdefer depths.deinit();
-        var depth_counter: usize = 0;
-        while (depth_counter < screen.allowed_depths_len) : (depth_counter += 1) {
+        const depths = try allocator.alloc(Depth, screen.allowed_depths_len);
+        errdefer allocator.free(depths);
+        for (depths) |*d| {
             var depth: protocol.Depth = undefined;
             index += parseSetupType(&depth, buffer[index..]);
 
-            var visual_types = std.ArrayList(VisualType).init(allocator);
-            errdefer visual_types.deinit();
-            var visual_counter: usize = 0;
-            while (visual_counter < depth.visuals_len) : (visual_counter += 1) {
+            const visual_types = try allocator.alloc(VisualType, depth.visuals_len);
+            errdefer allocator.free(visual_types);
+            for (visual_types) |*t| {
                 var visual_type: protocol.VisualType = undefined;
                 index += parseSetupType(&visual_type, buffer[index..]);
-                try visual_types.append(.{
+                t.* = .{
                     .id = visual_type.visual_id,
                     .bits_per_rgb_value = visual_type.bits_per_rgb_value,
                     .colormap_entries = visual_type.colormap_entries,
                     .red_mask = visual_type.red_mask,
                     .green_mask = visual_type.green_mask,
                     .blue_mask = visual_type.blue_mask,
-                });
+                };
             }
 
-            try depths.append(.{
+            d.* = .{
                 .depth = depth.depth,
-                .visual_types = visual_types.toOwnedSlice(),
-            });
+                .visual_types = visual_types,
+            };
         }
-        try screens.append(.{
+
+        s.* = .{
             .root = screen.root,
             .default_colormap = screen.default_colormap,
             .white_pixel = screen.white_pixel,
@@ -379,16 +467,16 @@ fn parseSetup(conn: *Connection, buffer: []u8) !void {
             .backing_store = screen.backing_store,
             .save_unders = screen.save_unders,
             .root_depth = screen.root_depth,
-            .depths = depths.toOwnedSlice(),
-        });
+            .depths = depths,
+        };
     }
 
     if (index != buffer.len) {
         return error.IncorrectSetup;
     }
 
-    conn.formats = formats.toOwnedSlice();
-    conn.screens = screens.toOwnedSlice();
+    conn.formats = formats;
+    conn.screens = screens;
 }
 
 /// Format represents support pixel formats
