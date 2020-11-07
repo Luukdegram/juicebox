@@ -1,5 +1,6 @@
 const std = @import("std");
 const Connection = @import("x/Connection.zig");
+const Window = @import("x/Window.zig");
 const log = std.log;
 
 pub const io_mode = .evented;

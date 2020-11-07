@@ -64,7 +64,7 @@ pub const MapWindowRequest = extern struct {
     major_opcode: u8 = 8,
     pad0: u8 = 0,
     length: u16,
-    window: XWindow,
+    window: Types.Window,
 };
 pub const Format = extern struct {
     depth: u8,
@@ -141,4 +141,28 @@ pub const QueryExtensionReply = extern struct {
     first_event: u8,
     first_error: u8,
     pad1: [20]u8,
+};
+
+pub const CreateWindowRequest = extern struct {
+    major_opcode: u8 = 1,
+    depth: u8 = 0,
+    length: u16,
+    wid: Types.Window,
+    parent: Types.Window,
+    x: i16 = 0,
+    y: i16 = 0,
+    width: u16,
+    height: u16,
+    border_width: u16 = 0,
+    class: u16 = 0,
+    visual: Types.VisualId,
+    value_mask: u32,
+};
+pub const CreateGCRequest = extern struct {
+    major_opcode: u8 = 55,
+    pad0: u8 = 0,
+    length: u16,
+    cid: Types.GContext,
+    drawable: Types.Drawable,
+    mask: u32,
 };

@@ -504,7 +504,7 @@ const VisualType = struct {
 
 /// Screen with its values, each screen has a root id
 /// which is unique and is used to create windows on the screen
-const Screen = struct {
+pub const Screen = struct {
     root: u32,
     default_colormap: u32,
     white_pixel: u32,
