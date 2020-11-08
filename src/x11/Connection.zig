@@ -5,7 +5,7 @@ const mem = std.mem;
 const os = std.os;
 const fs = std.fs;
 
-pub const Connection = @This();
+const Connection = @This();
 
 /// Handle to the socket of the X connection
 handle: fs.File,

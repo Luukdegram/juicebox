@@ -7,12 +7,25 @@ pub const Values = struct {
     pub const GC_BACKGROUND = 8;
     pub const GC_GRAPHICS_EXPOSURES = 65536;
     pub const GX_COPY = 3;
-    pub const BACK_PIXEL = 2;
     pub const EVENT_MASK = 2048;
-    pub const KEY_PRESS = 2;
-    pub const KEY_RELEASE = 3;
-    pub const BUTTON_PRESS = 4;
-    pub const BUTTON_RELEASE = 5;
+
+    pub const Window = struct {
+        pub const back_pixmap: u32 = 1;
+        pub const back_pixel: u32 = 2;
+        pub const border_pixmap: u32 = 4;
+        pub const border_pixel: u32 = 8;
+        pub const bit_gravity: u32 = 16;
+        pub const win_gravity: u32 = 32;
+        pub const backing_store: u32 = 64;
+        pub const backing_planes: u32 = 128;
+        pub const backing_pixel: u32 = 256;
+        pub const override_redirect: u32 = 512;
+        pub const save_under: u32 = 1024;
+        pub const event_mask: u32 = 2048;
+        pub const dont_propagate: u32 = 4096;
+        pub const colormap: u32 = 8192;
+        pub const cursor: u32 = 16348;
+    };
 };
 
 /// X Protocol Types, makes it easier to read data
@@ -30,6 +43,7 @@ pub const Types = struct {
 };
 
 pub const Atoms = enum(u32) {
+    none_or_any = 0,
     primary = 1,
     secondary = 2,
     arc = 3,
@@ -103,6 +117,12 @@ pub const Atoms = enum(u32) {
     pub fn val(self: Atoms) u32 {
         return @enumToInt(self);
     }
+};
+
+/// Contains the mask and its value
+pub const ValueMask = struct {
+    mask: u32,
+    value: u32,
 };
 
 pub const SetupRequest = extern struct {
@@ -256,4 +276,12 @@ pub const ChangePropertyRequest = extern struct {
     format: u8 = 8, // by default we make our slices into bytes
     pad0: [3]u8 = [_]u8{0} ** 3,
     data_len: u32,
+};
+
+pub const ChangeWindowAttributes = extern struct {
+    major_opcode = 2,
+    pad0: u8 = 0,
+    length: u16,
+    window: Types.Window,
+    mask: u32,
 };

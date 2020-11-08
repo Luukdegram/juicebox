@@ -5,7 +5,11 @@ const std = @import("std");
 const os = std.os;
 const mem = std.mem;
 
-pub const Window = @This();
+const Window = @This();
+
+//! Window management module. Allows for creation, updating and removing of windows
+//! A window also has a reference to the connection that was used to create the window
+//! to remove the need to pass around the connection everywhere
 
 /// Xid of the window, used to update settings etc.
 handle: x.Types.Window,
@@ -18,6 +22,8 @@ pub const CreateWindowOptions = struct {
     width: u16,
     height: u16,
     title: ?[]const u8 = null,
+    class: WindowClass = .copy,
+    values: []const x.ValueMask = &[_]x.ValueMask{},
 };
 
 /// The mode you want to change the window property
@@ -28,42 +34,55 @@ const PropertyMode = enum(u8) {
     append,
 };
 
+const WindowClass = enum(u16) {
+    copy = 0,
+    input_output = 1,
+    input_only = 2,
+
+    fn val(self: WindowClass) u16 {
+        return @enumToInt(self);
+    }
+};
+
 /// Creates a new `Window` on the given `screen` using the settings, set by `options`
-pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindowOptions) !Window {
+/// For now it creates a window with a black background
+pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindowOptions, values: []const x.ValueMask) !Window {
     const xid = try conn.genXid();
-    const event_mask: u32 = x.Values.BUTTON_PRESS | x.Values.BUTTON_RELEASE | x.Values.KEY_PRESS |
-        x.Values.KEY_RELEASE;
     const writer = conn.handle.writer();
 
+    const mask: u32 = blk: {
+        var tmp: u32 = 0;
+        for (values) |val| tmp |= val.mask;
+        break :blk tmp;
+    };
+
     const window_request = x.CreateWindowRequest{
-        .length = @sizeOf(x.CreateWindowRequest) / 4 + 2,
+        .length = @sizeOf(x.CreateWindowRequest) / 4 + @intCast(u16, values.len),
         .wid = xid,
         .parent = screen.root,
         .width = options.width,
         .height = options.height,
         .visual = screen.root_visual,
-        .value_mask = x.Values.BACK_PIXEL | x.Values.EVENT_MASK,
+        .value_mask = mask,
+        .class = options.class.val(),
     };
 
-    const map_request = x.MapWindowRequest{
-        .window = xid,
-    };
+    try conn.send(window_request);
+    for (values) |val| try conn.send(val.value);
 
-    try writer.writeAll(std.mem.asBytes(&window_request));
-    try writer.writeAll(std.mem.asBytes(&screen.black_pixel));
-    try writer.writeAll(std.mem.asBytes(&event_mask));
-    try writer.writeAll(std.mem.asBytes(&map_request));
+    // map our window to make it visible
+    try map(conn, xid);
 
     const window = Window{ .handle = xid, .connection = conn };
 
-    if (options.title) |title| {
+    defer if (options.title) |title| {
         _ = async window.changeWindowProperty(
             .replace,
             x.Atoms.wm_name,
             x.Atoms.string,
             .{ .string = title },
         );
-    }
+    };
 
     return window;
 }
@@ -88,7 +107,7 @@ const Property = union(enum) {
 
 /// Allows to change a window property using the given parameters
 /// such as the window title
-fn changeWindowProperty(
+pub fn changeWindowProperty(
     self: Window,
     mode: PropertyMode,
     property: x.Atoms,
@@ -121,9 +140,31 @@ fn changeWindowProperty(
     try self.connection.send(request.pad0);
 }
 
+/// Changes the given attributs on the current `Window`
+pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
+    const mask: u32 = blk: {
+        var tmp: u32 = 0;
+        for (values) |val| tmp |= val.mask;
+        break :blk tmp;
+    };
+
+    try self.connection.send(
+        x.ChangeWindowAttributes{
+            .length = @sizeOf(x.ChangeWindowAttributes) + @intCast(u16, values.len),
+            .window = self.handle,
+            .mask = mask,
+        },
+    );
+}
+
 /// Creates a new `Context` for this `Window` with the given `mask` and `values`
-fn createContext(self: Window, mask: u32, values: []u32) !x.Types.GContext {
+pub fn createContext(self: Window, mask: u32, values: []u32) !x.Types.GContext {
     return Context.create(self.connection, self.handle, mask, values);
+}
+
+/// Maps a window to the current display
+pub fn map(connection: *Connection, window: x.Types.Window) !void {
+    try connection.send(x.MapWindowRequest{ .window = window });
 }
 
 fn xpad(n: usize) usize {
