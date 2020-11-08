@@ -14,24 +14,9 @@ pub fn create(connection: *Connection, root: u32, mask: u32, values: []u32) !x.T
         .mask = mask,
     };
 
-    try connection.handle.writevAll(
-        &[_]os.iovec{
-            .{
-                .iov_base = @ptrCast([*]const u8, &request),
-                .iov_len = @sizeOf(x.CreateGCRequest),
-            },
-        },
-    );
-
-    for (values) |val, i| {
-        try connection.handle.writevAll(
-            &[_]os.iovec{
-                .{
-                    .iov_base = @ptrCast([*]const u8, &val),
-                    .iov_len = 4,
-                },
-            },
-        );
+    try connection.send(request);
+    for (values) |val| {
+        try connection.send(val);
     }
 
     return xid;

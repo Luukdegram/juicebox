@@ -109,12 +109,8 @@ pub fn genXid(self: *Connection) !u32 {
                 return error.MiscUnsupported;
             }
 
-            const xid_range_request = protocol.IdRangeRequest{};
-            var parts: [1]os.iovec_const = undefined;
-            parts[0].iov_base = @ptrCast([*]const u8, &xid_range_request);
-            parts[0].iov_len = @sizeOf(protocol.IdRangeRequest);
+            try self.send(protocol.IdRangeRequest{});
 
-            try self.handle.writevAll(&parts);
             const reply = try self.handle.reader().readStruct(protocol.IdRangeReply);
 
             xid.last = reply.start_id;
@@ -125,6 +121,15 @@ pub fn genXid(self: *Connection) !u32 {
     }
     ret = xid.last | xid.base;
     return ret;
+}
+
+/// Sends data to the X11 server
+pub fn send(self: *const Connection, data: anytype) !void {
+    if (@TypeOf(data) == []const u8) {
+        try self.handle.writeAll(data);
+    } else {
+        try self.handle.writeAll(mem.asBytes(&data));
+    }
 }
 
 /// Disconnects from X and frees all memory
@@ -145,15 +150,10 @@ fn supportsExtension(self: *Connection, ext_name: []const u8) !bool {
         .length = @intCast(u16, @sizeOf(protocol.QueryExtensionRequest) + ext_name.len + xpad(ext_name.len)) / 4,
         .name_len = @intCast(u16, ext_name.len),
     };
-    var parts: [3]os.iovec_const = undefined;
-    parts[0].iov_base = @ptrCast([*]const u8, &request);
-    parts[0].iov_len = @sizeOf(protocol.QueryExtensionRequest);
-    parts[1].iov_base = ext_name.ptr;
-    parts[1].iov_len = ext_name.len;
-    parts[2].iov_base = &request.pad1;
-    parts[2].iov_len = xpad(ext_name.len);
+    try self.send(request);
+    try self.send(ext_name);
+    try self.send(request.pad1);
 
-    try self.handle.writevAll(&parts);
     const reply = try self.handle.reader().readStruct(protocol.QueryExtensionReply);
 
     return reply.present != 0;
