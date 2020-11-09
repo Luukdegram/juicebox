@@ -42,6 +42,48 @@ pub const EventType = enum(u8) {
     colormap_notify = 32,
     client_message = 33,
     mapping_notify = 34,
+
+    /// Returns the mask made from a slice of `EventType`
+    pub fn getMask(values: []const EventType) u32 {
+        var mask: u32 = 0;
+        for (values) |val| mask |= @enumToInt(val);
+        return mask;
+    }
+};
+
+/// Allows easy access to masks as defined by X11:
+///
+pub const Masks = struct {
+    /// A button has been pressed
+    pub const button_press: u32 = @enumToInt(EventType.button_press);
+    /// A button has been released
+    pub const button_release: u32 = @enumToInt(EventType.button_release);
+    /// The mouse cursor has moved
+    pub const pointer_motion: u32 = @enumToInt(EventType.motion_notify);
+    /// The window needs to be redrawn
+    pub const exposure: u32 = @enumToInt(EventType.expose);
+    /// The cursor has entered inside the window
+    pub const enter_window: u32 = @enumToInt(EventType.enter_notify);
+    /// The cursor has moved outside the window
+    pub const leave_window: u32 = @enumToInt(EventType.leave_notify);
+    /// Window property has changed
+    pub const property_change: u32 = @enumToInt(EventType.property_notify);
+    /// The window has gained or lost focus
+    pub const focus_change: u32 = @enumToInt(EventType.focus_in) | @enumToInt(EventType.focus_out);
+    /// The frame is being destroyed
+    pub const structure: u32 = EventType.getMask(&[_]EventType{
+        .circulate_notify, .configure_notify, .destroy_notify, .gravity_notify,
+        .map_notify,       .reparent_notify,  .unmap_notify,
+    });
+    /// Subwindows get notifies
+    pub const substructure: u32 = EventType.getMask(&[_]EventType{
+        .circulate_notify, .configure_notify, .create_notify,   .destroy_notify,
+        .gravity_notify,   .map_notify,       .reparent_notify, .unmap_notify,
+    });
+    /// The application tries to resize itself
+    pub const substructure_redirect: u32 = EventType.getMask(&[_]EventType{
+        .circulate_notify, .configure_notify, .map_request,
+    });
 };
 
 /// Event represents an X11 event received by the server.

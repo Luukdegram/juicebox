@@ -279,7 +279,7 @@ pub const ChangePropertyRequest = extern struct {
 };
 
 pub const ChangeWindowAttributes = extern struct {
-    major_opcode = 2,
+    major_opcode: u8 = 2,
     pad0: u8 = 0,
     length: u16,
     window: Types.Window,

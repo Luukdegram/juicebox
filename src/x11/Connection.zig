@@ -123,6 +123,11 @@ pub fn genXid(self: *Connection) !u32 {
     return ret;
 }
 
+/// Returns a `Reader` to the connection's socket reader
+pub fn reader(self: *Connection) @TypeOf(fs.File.Reader) {
+    return self.handle.reader();
+}
+
 /// Sends data to the X11 server
 pub fn send(self: *const Connection, data: anytype) !void {
     if (@TypeOf(data) == []const u8) {

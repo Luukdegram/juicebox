@@ -1,9 +1,7 @@
 const std = @import("std");
-const x = @import("x11");
-const Connection = x.Connection;
-const Window = x.Window;
+const Manager = @import("Manager.zig");
 const log = std.log;
-const events = x.events;
+const events = @import("x11").events;
 
 pub const io_mode = .evented;
 
@@ -13,26 +11,18 @@ pub fn main() anyerror!void {
 
     log.info("Starting juicebox...", .{});
 
-    var connection = try Connection.init(&gpa.allocator);
-    defer connection.disconnect();
+    var manager = try Manager.init(&gpa.allocator);
+    defer manager.deinit();
 
-    log.info("Initialized connection with X11 server: {}", .{connection.status});
+    log.info("Juicebox initialized", .{});
 
-    const window = try Window.create(&connection, connection.screens[0], .{
-        .height = 500,
-        .width = 500,
-        .title = "Hello from Juicebox",
-    }, &[1]x.protocol.ValueMask{.{
-        .mask = x.protocol.Values.Window.back_pixel,
-        .value = connection.screens[0].black_pixel,
-    }});
-
-    while (connection.status == .ok) {
+    while (true) {
         var bytes: [32]u8 = undefined;
-        try connection.handle.reader().readNoEof(&bytes);
+        try manager.connection.handle.reader().readNoEof(&bytes);
 
+        std.debug.print("Bytes: {}\n", .{bytes});
         // got an event!
-        if (bytes[0] == 2) {
+        if (bytes[0] > 1 and bytes[0] < 35) {
             std.debug.print("Event: {}\n", .{@intToEnum(events.EventType, bytes[0])});
         }
     }
