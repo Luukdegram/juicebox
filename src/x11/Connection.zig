@@ -123,18 +123,48 @@ pub fn genXid(self: *Connection) !u32 {
     return ret;
 }
 
-/// Returns a `Reader` to the connection's socket reader
-pub fn reader(self: *Connection) @TypeOf(fs.File.Reader) {
-    return self.handle.reader();
+/// Same error set as std.fs.File
+const ReadError = error{
+    InputOutput,
+    SystemResources,
+    IsDir,
+    OperationAborted,
+    BrokenPipe,
+    ConnectionResetByPeer,
+    ConnectionTimedOut,
+    NotOpenForReading,
+
+    /// This error occurs when no global event loop is configured,
+    /// and reading from the file descriptor would block.
+    WouldBlock,
+
+    /// In WASI, this error occurs when the file descriptor does
+    /// not hold the required rights to read from it.
+    AccessDenied,
+    Unexpected,
+};
+
+/// Returns a `std.io.Reader` to the connection's socket reader
+pub fn reader(self: *Connection) std.io.Reader(*Connection, ReadError, read) {
+    return .{ .context = self };
+}
+
+fn read(self: *Connection, buffer: []u8) ReadError!usize {
+    return self.handle.read(buffer);
 }
 
 /// Sends data to the X11 server
 pub fn send(self: *const Connection, data: anytype) !void {
-    if (@TypeOf(data) == []const u8) {
+    if (@TypeOf(data) == []const u8 or @TypeOf(data) == []u8) {
         try self.handle.writeAll(data);
     } else {
         try self.handle.writeAll(mem.asBytes(&data));
     }
+}
+
+/// Reads the given type from the X11 server
+pub fn recv(self: *Connection, comptime T: type, wanted: *T) ReadError!void {
+    wanted.* = try self.reader().readStruct(T);
 }
 
 /// Disconnects from X and frees all memory

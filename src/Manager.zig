@@ -22,7 +22,7 @@ root: Window,
 screen: Connection.Screen,
 
 // zig fmt: off
-const ROOT_EVENT_MASK = Masks.substructure_redirect | Masks.button_press 
+const ROOT_EVENT_MASK = Masks.substructure_redirect | Masks.substructure | Masks.button_press 
 | Masks.structure | Masks.pointer_motion 
 | Masks.property_change | Masks.focus_change | Masks.enter_window;
 // zig fmt: on
@@ -56,14 +56,6 @@ pub fn init(gpa: *Allocator) !*Manager {
     // setup the root window to listen to events
     try manager.root.changeAttributes(
         &[_]x.protocol.ValueMask{
-            .{
-                .mask = Values.Window.back_pixel,
-                .value = manager.screen.black_pixel,
-            },
-            .{
-                .mask = Values.Window.border_pixel,
-                .value = manager.screen.black_pixel,
-            },
             .{
                 .mask = Values.Window.event_mask,
                 .value = ROOT_EVENT_MASK,
