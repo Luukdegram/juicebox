@@ -2,6 +2,7 @@ const std = @import("std");
 const Manager = @import("Manager.zig");
 const log = std.log;
 const events = @import("x11").events;
+const errors = @import("x11").errors;
 
 pub const io_mode = .evented;
 
@@ -16,19 +17,27 @@ pub fn main() anyerror!void {
 
     log.info("Juicebox initialized", .{});
 
-    while (true) {
+    var i: usize = 0;
+    while (true) : (i += 1) {
+        const response_byte = try manager.connection.reader().readByte();
+
         var bytes: [32]u8 = undefined;
-        try manager.connection.handle.reader().readNoEof(&bytes);
+        bytes[0] = response_byte;
+        try manager.connection.reader().readNoEof(bytes[1..]);
 
         if (bytes[0] > 1 and bytes[0] < 35) {
-            // got an event!
             const event = events.Event.fromBytes(bytes);
-            log.debug("Event: {}", .{std.meta.activeTag(event)});
 
             switch (event) {
-                .button_press => |btn_event| log.debug("Pressed keycode: {}", .{btn_event.detail}),
+                .button_press => |button| log.debug("Clicked button: {}", .{button.detail}),
+                .key_press => |key| log.debug("Pressed key: {}", .{key.detail}),
                 else => continue,
             }
+        } else if (bytes[0] == 0) {
+            // error occured
+            const err = errors.Error.fromBytes(bytes);
+            log.err("{} - seq: {}", .{ err.code, err.sequence });
+            log.debug("Error details: {}", .{err});
         }
     }
 }

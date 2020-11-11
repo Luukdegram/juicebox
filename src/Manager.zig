@@ -5,6 +5,7 @@ const Window = x.Window;
 const Allocator = std.mem.Allocator;
 const Values = x.protocol.Values;
 const Masks = x.events.Masks;
+const input = x.input;
 
 const Manager = @This();
 
@@ -21,11 +22,17 @@ root: Window,
 /// speak to when a user has multiple monitors.
 screen: Connection.Screen,
 
-// zig fmt: off
-const ROOT_EVENT_MASK = Masks.substructure_redirect | Masks.substructure | Masks.button_press 
-| Masks.structure | Masks.pointer_motion 
-| Masks.property_change | Masks.focus_change | Masks.enter_window;
-// zig fmt: on
+/// The mask we use for our root window
+const root_event_mask = Masks.getMask(&[_]Masks{
+    .substructure_redirect,
+    .substructure_notify,
+    .button_press,
+    .structure_notify,
+    .pointer_motion,
+    .property_change,
+    .focus_change,
+    .enter_window,
+});
 
 /// Initializes a new Juicebox `Manager`. Connects with X11
 /// and handle the root window creation
@@ -58,7 +65,7 @@ pub fn init(gpa: *Allocator) !*Manager {
         &[_]x.protocol.ValueMask{
             .{
                 .mask = Values.Window.event_mask,
-                .value = ROOT_EVENT_MASK,
+                .value = root_event_mask,
             },
         },
     );
@@ -71,4 +78,16 @@ pub fn deinit(self: *Manager) void {
     self.connection.disconnect();
     self.gpa.destroy(self.connection);
     self.gpa.destroy(self);
+}
+
+/// Grabs the buttons the user has defined
+/// TODO: Create user configuration and make the manager aware of it
+fn grabUserButtons(self: Manager) !void {
+    try input.grabButton(self.connection, .{
+        .confine_to = self.root.handle,
+        .grab_window = self.root.handle,
+        .event_mask = @enumToInt(Masks.button_press) | @enumToInt(Masks.button_release),
+        .button = 0, // grab any key
+        .modifiers = .any, // any modifier
+    });
 }
