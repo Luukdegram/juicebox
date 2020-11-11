@@ -150,11 +150,12 @@ pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
 
     try self.connection.send(
         x.ChangeWindowAttributes{
-            .length = @sizeOf(x.ChangeWindowAttributes) + @intCast(u16, values.len),
+            .length = @sizeOf(x.ChangeWindowAttributes) / 4 + @intCast(u16, values.len),
             .window = self.handle,
             .mask = mask,
         },
     );
+    for (values) |val| try self.connection.send(val.value);
 }
 
 /// Creates a new `Context` for this `Window` with the given `mask` and `values`

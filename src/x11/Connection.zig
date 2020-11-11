@@ -154,6 +154,8 @@ fn read(self: *Connection, buffer: []u8) ReadError!usize {
 }
 
 /// Sends data to the X11 server
+/// TODO: Buffer all requests and allow the user to flush them at once
+/// for better performance, and easier counting of total request size
 pub fn send(self: *const Connection, data: anytype) !void {
     if (@TypeOf(data) == []const u8 or @TypeOf(data) == []u8) {
         try self.handle.writeAll(data);

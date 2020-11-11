@@ -42,48 +42,45 @@ pub const EventType = enum(u8) {
     colormap_notify = 32,
     client_message = 33,
     mapping_notify = 34,
+};
 
-    /// Returns the mask made from a slice of `EventType`
-    pub fn getMask(values: []const EventType) u32 {
+/// Event masks to have events trigger for a specific window
+/// using any of the given masks
+pub const Masks = extern enum(u32) {
+    none = 0,
+    key_press = 1,
+    key_release = 2,
+    button_press = 4,
+    button_release = 8,
+    enter_window = 16,
+    leave_window = 32,
+    pointer_motion = 64,
+    pointer_motion_hint = 128,
+    button_1_motion = 256,
+    button_2_motion = 512,
+    button_3_motion = 1024,
+    button_4_motion = 2048,
+    button_5_motion = 4096,
+    button_motion = 8192,
+    keymap_state = 16384,
+    exposure = 32768,
+    visibility_change = 65536,
+    structure_notify = 131072,
+    resize_redirect = 262144,
+    substructure_notify = 524288,
+    substructure_redirect = 1048576,
+    focus_change = 2097152,
+    property_change = 4194304,
+    color_map_change = 8388608,
+    owner_grab_button = 16777216,
+
+    /// Returns the mask made from a slice of `Masks`
+    /// Allows user to use enums without having to use @enumToInt
+    pub fn getMask(values: []const Masks) u32 {
         var mask: u32 = 0;
         for (values) |val| mask |= @enumToInt(val);
         return mask;
     }
-};
-
-/// Allows easy access to masks as defined by X11:
-///
-pub const Masks = struct {
-    /// A button has been pressed
-    pub const button_press: u32 = @enumToInt(EventType.button_press);
-    /// A button has been released
-    pub const button_release: u32 = @enumToInt(EventType.button_release);
-    /// The mouse cursor has moved
-    pub const pointer_motion: u32 = @enumToInt(EventType.motion_notify);
-    /// The window needs to be redrawn
-    pub const exposure: u32 = @enumToInt(EventType.expose);
-    /// The cursor has entered inside the window
-    pub const enter_window: u32 = @enumToInt(EventType.enter_notify);
-    /// The cursor has moved outside the window
-    pub const leave_window: u32 = @enumToInt(EventType.leave_notify);
-    /// Window property has changed
-    pub const property_change: u32 = @enumToInt(EventType.property_notify);
-    /// The window has gained or lost focus
-    pub const focus_change: u32 = @enumToInt(EventType.focus_in) | @enumToInt(EventType.focus_out);
-    /// The frame is being destroyed
-    pub const structure: u32 = EventType.getMask(&[_]EventType{
-        .circulate_notify, .configure_notify, .destroy_notify, .gravity_notify,
-        .map_notify,       .reparent_notify,  .unmap_notify,
-    });
-    /// Subwindows get notifies
-    pub const substructure: u32 = EventType.getMask(&[_]EventType{
-        .circulate_notify, .configure_notify, .create_notify,   .destroy_notify,
-        .gravity_notify,   .map_notify,       .reparent_notify, .unmap_notify,
-    });
-    /// The application tries to resize itself
-    pub const substructure_redirect: u32 = EventType.getMask(&[_]EventType{
-        .circulate_notify, .configure_notify, .map_request,
-    });
 };
 
 /// Event represents an X11 event received by the server.
@@ -132,7 +129,7 @@ pub const Event = union(EventType) {
         std.debug.assert(response_type > 1 and response_type < 35);
 
         const event_type = @intToEnum(EventType, response_type);
-        const toEvent = std.mem.bytesToValue;
+        const toEvent = mem.bytesToValue;
 
         return switch (event_type) {
             .key_press => Event{ .key_press = toEvent(InputDeviceEvent, &bytes) },
@@ -189,6 +186,10 @@ pub const InputDeviceEvent = extern struct {
     state: u16,
     same_screen: u8,
     pad: u8,
+
+    pub fn sameScreen(self: InputDeviceEvent) bool {
+        return self.same_screen == 1;
+    }
 };
 
 /// Event generated when the cursor enters or leaves the window
@@ -207,6 +208,10 @@ pub const PointerWindowEvent = extern struct {
     state: u16,
     mode: u8,
     same_screen: u8,
+
+    pub fn sameScreen(self: PointerWindowEvent) bool {
+        return self.same_screen == 1;
+    }
 };
 
 /// Event generated when the input focus changes
@@ -293,6 +298,10 @@ pub const CreateEvent = extern struct {
     border_width: u16,
     override_redirect: u8,
     pad1: [9]u8,
+
+    pub fn overridden(self: CreateEvent) bool {
+        return self.override_redirect == 1;
+    }
 };
 
 /// Event generated when a window is destroyed
@@ -314,6 +323,10 @@ pub const UnmapEvent = extern struct {
     window: Types.Window,
     from_configure: u8,
     pad1: [19]u8,
+
+    pub fn configured(self: UnmapEvent) bool {
+        return self.from_configure == 1;
+    }
 };
 
 /// Event generated when a window is mapped and therefore visible
@@ -325,6 +338,10 @@ pub const MapEvent = extern struct {
     window: Types.Window,
     override_redirect: u8,
     pad1: [19]u8,
+
+    pub fn overridden(self: MapEvent) bool {
+        return self.override_redirect == 1;
+    }
 };
 
 /// Event generated when a request is issued on an unmapped window
@@ -350,6 +367,10 @@ pub const ReparentEvent = extern struct {
     y: u16,
     override_redirect: u8,
     pad1: [11]u8,
+
+    pub fn overridden(self: ReparentEvent) bool {
+        return self.override_redirect == 1;
+    }
 };
 
 /// Event generated when the configuration is changed
@@ -366,6 +387,10 @@ pub const ConfigureEvent = extern struct {
     height: u16,
     override_redirect: u8,
     pad1: [5]u8,
+
+    pub fn overridden(self: ConfigureEvent) bool {
+        return self.override_redirect == 1;
+    }
 };
 
 /// Event generated when an updated configuration is requested
@@ -501,6 +526,10 @@ pub const ColormapEvent = extern struct {
     /// 0 = Uninstalled, 1 = Installed
     state: u8,
     pad1: [18]u8,
+
+    pub fn isNew(self: ColormapEvent) bool {
+        return self.new == 1;
+    }
 };
 
 /// Event generated when the client sends the SendEvent message to the server

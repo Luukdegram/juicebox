@@ -3,12 +3,7 @@
 
 /// Constants that belong to the X protocol
 pub const Values = struct {
-    pub const GC_FOREGROUND = 4;
-    pub const GC_BACKGROUND = 8;
-    pub const GC_GRAPHICS_EXPOSURES = 65536;
-    pub const GX_COPY = 3;
-    pub const EVENT_MASK = 2048;
-
+    /// All constant that belong to updating Window attributes
     pub const Window = struct {
         pub const back_pixmap: u32 = 1;
         pub const back_pixel: u32 = 2;
@@ -40,8 +35,11 @@ pub const Types = struct {
     pub const Bool32 = u32;
     pub const Atom = u32;
     pub const Colormap = u32;
+    pub const Cursor = u32;
 };
 
+/// Predefined Atoms. Those are Atoms with a set value, all other Atoms
+/// must be retrieved by name from X11
 pub const Atoms = enum(u32) {
     none_or_any = 0,
     primary = 1,
@@ -284,4 +282,27 @@ pub const ChangeWindowAttributes = extern struct {
     length: u16,
     window: Types.Window,
     mask: u32,
+};
+
+pub const GrabButtonRequest = extern struct {
+    major_opcode: u8 = 28,
+    owner_events: u8,
+    length: u16 = @sizeOf(GrabButtonRequest) / 4, // 6
+    grab_window: Types.Window,
+    event_mask: u16,
+    pointer_mode: u8,
+    keyboard_mode: u8,
+    confine_to: Types.Window,
+    cursor: Types.Cursor,
+    button: u8,
+    pad0: u8 = 0,
+    modifiers: u16,
+};
+
+pub const UngrabButtonRequest = extern struct {
+    major_opcode: u8 = 29,
+    button: u8,
+    length: u16 = @sizeOf(UngrabButtonRequest) / 4, // 3
+    window: Types.Window,
+    modifiers: u16,
 };
