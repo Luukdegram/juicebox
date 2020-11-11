@@ -4,7 +4,7 @@ const Connection = x.Connection;
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
 const Values = x.protocol.Values;
-const Masks = x.events.Masks;
+const EventMask = x.events.Mask;
 const input = x.input;
 
 const Manager = @This();
@@ -23,7 +23,7 @@ root: Window,
 screen: Connection.Screen,
 
 /// The mask we use for our root window
-const root_event_mask = Masks.getMask(&[_]Masks{
+const root_event_mask = EventMask.getMask(&[_]EventMask{
     .substructure_redirect,
     .substructure_notify,
     .button_press,
@@ -86,7 +86,7 @@ fn grabUserButtons(self: Manager) !void {
     try input.grabButton(self.connection, .{
         .confine_to = self.root.handle,
         .grab_window = self.root.handle,
-        .event_mask = @enumToInt(Masks.button_press) | @enumToInt(Masks.button_release),
+        .event_mask = @enumToInt(EventMask.button_press) | @enumToInt(EventMask.button_release),
         .button = 0, // grab any key
         .modifiers = .any, // any modifier
     });

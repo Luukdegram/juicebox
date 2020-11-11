@@ -46,7 +46,7 @@ pub const EventType = enum(u8) {
 
 /// Event masks to have events trigger for a specific window
 /// using any of the given masks
-pub const Masks = extern enum(u32) {
+pub const Mask = extern enum(u32) {
     none = 0,
     key_press = 1,
     key_release = 2,
@@ -76,7 +76,7 @@ pub const Masks = extern enum(u32) {
 
     /// Returns the mask made from a slice of `Masks`
     /// Allows user to use enums without having to use @enumToInt
-    pub fn getMask(values: []const Masks) u32 {
+    pub fn getMask(values: []const Mask) u32 {
         var mask: u32 = 0;
         for (values) |val| mask |= @enumToInt(val);
         return mask;
