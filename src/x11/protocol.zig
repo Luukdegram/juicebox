@@ -306,3 +306,23 @@ pub const UngrabButtonRequest = extern struct {
     window: Types.Window,
     modifiers: u16,
 };
+
+pub const GrabKeyRequest = extern struct {
+    major_opcode: u8 = 33,
+    owner_events: u8,
+    length: u16 = @sizeOf(GrabKeyRequest) / 4, // 4
+    grab_window: Types.Window,
+    modifiers: u16,
+    key: Types.Keycode,
+    pointer_mode: u8,
+    keyboard_mode: u8,
+    pad: [3]u8 = &[_]u8{0} ** 3,
+};
+
+pub const UngrabKeyRequest = extern struct {
+    major_opcode: u8 = 34,
+    key: Types.Keycode,
+    length: u16 = @sizeOf(UngrabKeyRequest) / 4, // 3
+    window: Types.Window,
+    modifiers: u16,
+};
