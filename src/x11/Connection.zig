@@ -46,6 +46,8 @@ const ParseError = error{
 const Setup = struct {
     base: u32,
     mask: u32,
+    min_keycode: u8,
+    max_keycode: u8,
 };
 
 /// Connection status
@@ -111,7 +113,7 @@ pub fn genXid(self: *Connection) !u32 {
 
             try self.send(protocol.IdRangeRequest{});
 
-            const reply = try self.handle.reader().readStruct(protocol.IdRangeReply);
+            const reply = try self.recv(protocol.IdRangeReply);
 
             xid.last = reply.start_id;
             xid.max = reply.start_id + (reply.count - 1) * xid.inc;
@@ -165,8 +167,8 @@ pub fn send(self: *const Connection, data: anytype) !void {
 }
 
 /// Reads the given type from the X11 server
-pub fn recv(self: *Connection, comptime T: type, wanted: *T) ReadError!void {
-    wanted.* = try self.reader().readStruct(T);
+pub fn recv(self: *Connection, comptime T: type) ReadError!T {
+    return self.reader().readStruct(T);
 }
 
 /// Disconnects from X and frees all memory
@@ -348,8 +350,8 @@ fn connect(gpa: *Allocator, file: fs.File, auth: Auth) !Connection {
         .status = .authenticate,
     };
 
-    try writeSetup(file, auth);
-    try readSetup(gpa, &conn);
+    try conn.writeSetup(auth);
+    try conn.readSetup();
     if (conn.status == .ok) {
         // set the initial xid generator
         xid = Xid.init(conn);
@@ -359,48 +361,21 @@ fn connect(gpa: *Allocator, file: fs.File, auth: Auth) !Connection {
 }
 
 /// Writes to the stream to ask for the display setup
-fn writeSetup(file: fs.File, auth: Auth) fs.File.WriteError!void {
+fn writeSetup(self: *Connection, auth: Auth) !void {
     const pad = [3]u8{ 0, 0, 0 };
-    var parts: [6]os.iovec_const = undefined;
-    var parts_index: usize = 0;
-    var setup_req = protocol.SetupRequest{
-        .byte_order = if (std.builtin.endian == .Big) 0x42 else 0x6c,
-        .pad0 = 0,
-        .major_version = 11,
-        .minor_version = 0,
-        .name_len = 0,
-        .data_len = 0,
-        .pad1 = [2]u8{ 0, 0 },
-    };
-    parts[parts_index].iov_len = @sizeOf(protocol.SetupRequest);
-    parts[parts_index].iov_base = @ptrCast([*]const u8, &setup_req);
-    parts_index += 1;
-    comptime std.debug.assert(xpad(@sizeOf(protocol.SetupRequest)) == 0);
-
-    setup_req.name_len = @intCast(u16, auth.name.len);
-    parts[parts_index].iov_len = auth.name.len;
-    parts[parts_index].iov_base = auth.name.ptr;
-    parts_index += 1;
-    parts[parts_index].iov_len = xpad(auth.name.len);
-    parts[parts_index].iov_base = &pad;
-    parts_index += 1;
-
-    setup_req.data_len = @intCast(u16, auth.data.len);
-    parts[parts_index].iov_len = auth.data.len;
-    parts[parts_index].iov_base = auth.data.ptr;
-    parts_index += 1;
-    parts[parts_index].iov_len = xpad(auth.data.len);
-    parts[parts_index].iov_base = &pad;
-    parts_index += 1;
-
-    std.debug.assert(parts_index <= parts.len);
-
-    return file.writevAll(parts[0..parts_index]);
+    try self.send(protocol.SetupRequest{
+        .name_len = @intCast(u16, auth.name.len),
+        .data_len = @intCast(u16, auth.data.len),
+    });
+    try self.send(auth.name);
+    try self.send(pad[0..xpad(auth.name.len)]);
+    try self.send(auth.data);
+    try self.send(pad[0..xpad(auth.data.len)]);
 }
 
 /// Reads the setup response from the connection which is then parsed and saved in the connection
-fn readSetup(gpa: *Allocator, connection: *Connection) !void {
-    const stream = connection.handle.reader();
+fn readSetup(self: *Connection) !void {
+    const stream = self.reader();
 
     const SetupGeneric = extern struct {
         status: u8,
@@ -409,34 +384,36 @@ fn readSetup(gpa: *Allocator, connection: *Connection) !void {
     };
     const header = try stream.readStruct(SetupGeneric);
 
-    const setup_buffer = try gpa.alloc(u8, header.length * 4);
-    errdefer gpa.free(setup_buffer);
+    const setup_buffer = try self.gpa.alloc(u8, header.length * 4);
+    errdefer self.gpa.free(setup_buffer);
 
     try stream.readNoEof(setup_buffer);
 
-    connection.status = switch (header.status) {
+    self.status = switch (header.status) {
         0 => .setup_failed,
         1 => .ok,
         2 => .authenticate,
         else => return error.InvalidStatus,
     };
 
-    if (connection.status == .ok) {
-        try parseSetup(connection, setup_buffer);
+    if (self.status == .ok) {
+        try self.parseSetup(setup_buffer);
     }
 }
 
 /// Parses the setup received from the connection into
 /// seperate struct types
-fn parseSetup(conn: *Connection, buffer: []u8) !void {
-    const allocator = conn.gpa;
+fn parseSetup(self: *Connection, buffer: []u8) !void {
+    const allocator = self.gpa;
 
     var setup: protocol.Setup = undefined;
     var index: usize = parseSetupType(&setup, buffer[0..]);
 
-    conn.setup = Connection.Setup{
+    self.setup = Connection.Setup{
         .base = setup.resource_id_base,
         .mask = setup.resource_id_mask,
+        .min_keycode = setup.min_keycode,
+        .max_keycode = setup.max_keycode,
     };
 
     // ignore the vendor for now
@@ -512,8 +489,8 @@ fn parseSetup(conn: *Connection, buffer: []u8) !void {
         return error.IncorrectSetup;
     }
 
-    conn.formats = formats;
-    conn.screens = screens;
+    self.formats = formats;
+    self.screens = screens;
 }
 
 /// Format represents support pixel formats

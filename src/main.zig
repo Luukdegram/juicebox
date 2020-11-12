@@ -28,6 +28,7 @@ pub fn main() anyerror!void {
         if (bytes[0] > 1 and bytes[0] < 35) {
             const event = events.Event.fromBytes(bytes);
 
+            log.debug("{}", .{@tagName(std.meta.activeTag(event))});
             switch (event) {
                 .button_press => |button| log.debug("Clicked button: {}", .{button.detail}),
                 .key_press => |key| log.debug("Pressed key: {}", .{key.detail}),

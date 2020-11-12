@@ -112,3 +112,9 @@ pub fn ungrabKey(conn: *Connection, key: Types.Keycode, window: Window, modifier
         .modifiers = @enumToInt(modifiers),
     });
 }
+
+/// Converts a keysym to a keycode
+pub fn keysymToKeycode(conn: *Connection, keysym: Types.Keysym) !Types.keycode {}
+
+/// Converts a keycode to a keysym
+pub fn keycodeToKeysym(conn: *Connection, keycode: Types.Keycode) !Types.Keysym {}

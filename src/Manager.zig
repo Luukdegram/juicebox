@@ -3,7 +3,6 @@ const x = @import("x11");
 const Connection = x.Connection;
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
-const Values = x.protocol.Values;
 const EventMask = x.events.Mask;
 const input = x.input;
 
@@ -41,6 +40,7 @@ pub fn init(gpa: *Allocator) !*Manager {
     errdefer gpa.destroy(manager);
 
     const conn = try gpa.create(Connection);
+    errdefer gpa.destroy(conn);
     conn.* = try Connection.init(gpa);
 
     // create a Manager object and initialize the X11 connection
@@ -64,7 +64,7 @@ pub fn init(gpa: *Allocator) !*Manager {
     try manager.root.changeAttributes(
         &[_]x.protocol.ValueMask{
             .{
-                .mask = Values.Window.event_mask,
+                .mask = x.protocol.WindowAttributes.event_mask.val(),
                 .value = root_event_mask,
             },
         },

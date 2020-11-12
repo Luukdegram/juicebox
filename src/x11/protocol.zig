@@ -1,26 +1,41 @@
 //! Contains all structs, constants and types that belong
 //! to the X11 protocol
 
-/// Constants that belong to the X protocol
-pub const Values = struct {
-    /// All constant that belong to updating Window attributes
-    pub const Window = struct {
-        pub const back_pixmap: u32 = 1;
-        pub const back_pixel: u32 = 2;
-        pub const border_pixmap: u32 = 4;
-        pub const border_pixel: u32 = 8;
-        pub const bit_gravity: u32 = 16;
-        pub const win_gravity: u32 = 32;
-        pub const backing_store: u32 = 64;
-        pub const backing_planes: u32 = 128;
-        pub const backing_pixel: u32 = 256;
-        pub const override_redirect: u32 = 512;
-        pub const save_under: u32 = 1024;
-        pub const event_mask: u32 = 2048;
-        pub const dont_propagate: u32 = 4096;
-        pub const colormap: u32 = 8192;
-        pub const cursor: u32 = 16348;
-    };
+/// All constant that belong to updating Window attributes
+pub const WindowAttributes = extern enum(u32) {
+    back_pixmap = 1,
+    back_pixel = 2,
+    border_pixmap = 4,
+    border_pixel = 8,
+    bit_gravity = 16,
+    win_gravity = 32,
+    backing_store = 64,
+    backing_planes = 128,
+    backing_pixel = 256,
+    override_redirect = 512,
+    save_under = 1024,
+    event_mask = 2048,
+    dont_propagate = 4096,
+    colormap = 8192,
+    cursor = 16348,
+
+    pub fn val(self: WindowAttributes) u32 {
+        return @enumToInt(self);
+    }
+};
+
+pub const WindowConfig = extern enum(u32) {
+    x = 1,
+    y = 2,
+    width = 4,
+    height = 8,
+    border_width = 16,
+    sibling = 32,
+    stack_mode = 64,
+
+    pub fn val(self: WindowConfig) u32 {
+        return @enumToInt(self);
+    }
 };
 
 /// X Protocol Types, makes it easier to read data
@@ -36,6 +51,7 @@ pub const Types = struct {
     pub const Atom = u32;
     pub const Colormap = u32;
     pub const Cursor = u32;
+    pub const Keysym = u32;
 };
 
 /// Predefined Atoms. Those are Atoms with a set value, all other Atoms
@@ -124,13 +140,13 @@ pub const ValueMask = struct {
 };
 
 pub const SetupRequest = extern struct {
-    byte_order: u8,
-    pad0: u8,
-    major_version: u16,
-    minor_version: u16,
+    byte_order: u8 = if (@import("std").builtin.endian == .Big) 0x42 else 0x6c,
+    pad0: u8 = 0,
+    major_version: u16 = 11,
+    minor_version: u16 = 0,
     name_len: u16,
     data_len: u16,
-    pad1: [2]u8,
+    pad1: [2]u8 = [_]u8{ 0, 0 },
 };
 
 pub const Setup = extern struct {
@@ -325,4 +341,20 @@ pub const UngrabKeyRequest = extern struct {
     length: u16 = @sizeOf(UngrabKeyRequest) / 4, // 3
     window: Types.Window,
     modifiers: u16,
+};
+
+pub const ConfigureWindowRequest = extern struct {
+    major_opcode: u8 = 12,
+    pad: u8 = 0,
+    length: u16,
+    window: Types.Window,
+    mask: u16,
+    pad1: [2]u8 = &[_]u8{ 0, 0 },
+};
+
+pub const KillClientRequest = extern struct {
+    major_opcode: u8 = 113,
+    pad: u8 = 0,
+    length: u16 = @sizeOf(KillClientRequest) / 4, //2
+    window: Types.Window,
 };

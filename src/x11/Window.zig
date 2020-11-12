@@ -76,7 +76,7 @@ pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindo
     const window = Window{ .handle = xid, .connection = conn };
 
     defer if (options.title) |title| {
-        _ = async window.changeWindowProperty(
+        _ = async window.changeProperty(
             .replace,
             x.Atoms.wm_name,
             x.Atoms.string,
@@ -107,7 +107,7 @@ const Property = union(enum) {
 
 /// Allows to change a window property using the given parameters
 /// such as the window title
-pub fn changeWindowProperty(
+pub fn changeProperty(
     self: Window,
     mode: PropertyMode,
     property: x.Atoms,
@@ -156,6 +156,29 @@ pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
         },
     );
     for (values) |val| try self.connection.send(val.value);
+}
+
+/// Configures the window using the given values and mask
+pub fn configure(self: Window, values: []const x.ValueMask) !void {
+    const mask: u32 = blk: {
+        var tmp: u32 = 0;
+        for (values) |val| tmp |= val.mask;
+        break :blk tmp;
+    };
+
+    try self.connection.send(
+        x.ConfigureWindowRequest{
+            .length = @sizeOf(x.ChangeWindowAttributes) / 4 + @intCast(u16, values.len),
+            .window = self.handle,
+            .mask = mask,
+        },
+    );
+    for (values) |val| try self.connection.send(val.value);
+}
+
+/// Closes a window
+pub fn close(self: Window) !void {
+    try self.connection.send(x.KillClientRequest{ .window = self.handle });
 }
 
 /// Creates a new `Context` for this `Window` with the given `mask` and `values`
