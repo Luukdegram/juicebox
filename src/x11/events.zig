@@ -77,14 +77,6 @@ pub const Mask = packed struct {
     pub fn toInt(self: @This()) u32 {
         return @bitCast(u32, self);
     }
-
-    pub inline fn set(self: *@This(), comptime field: []const u8) void {
-        @field(self, field) = true;
-    }
-
-    pub inline fn clear(self: *@This(), comptime field: []const u8) void {
-        @field(self, field) = false;
-    }
 };
 
 /// Event represents an X11 event received by the server.

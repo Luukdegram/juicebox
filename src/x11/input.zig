@@ -29,14 +29,6 @@ pub const Modifiers = packed struct {
     pub fn toInt(self: @This()) u16 {
         return @bitCast(u16, self);
     }
-
-    pub inline fn set(self: *@This(), comptime field: []const u8) void {
-        @field(self, field) = true;
-    }
-
-    pub inline fn clear(self: *@This(), comptime field: []const u8) void {
-        @field(self, field) = false;
-    }
 };
 
 /// Options to set when grabbing a button
