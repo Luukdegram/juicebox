@@ -1,6 +1,6 @@
 const Connection = @import("Connection.zig");
 const Window = @import("Window.zig");
-
+const EventMask = @import("events.zig").Mask;
 usingnamespace @import("protocol.zig");
 
 pub const Modifiers = packed struct {
@@ -44,8 +44,8 @@ pub const Modifiers = packed struct {
 /// Options to set when grabbing a button
 pub const GrabButtonOptions = struct {
     owner_events: bool = false,
-    /// which events to grab
-    event_mask: u16 = 0,
+    /// which pointer events to grab
+    event_mask: EventMask = .{},
     /// How events are triggered. Async by default
     pointer_mode: GrabMode = .@"async",
     /// How events are triggered. Async by default
@@ -73,7 +73,7 @@ pub fn grabButton(conn: *Connection, options: GrabButtonOptions) !void {
     try conn.send(GrabButtonRequest{
         .owner_events = @boolToInt(options.owner_events),
         .grab_window = options.grab_window.handle,
-        .event_mask = options.event_mask,
+        .event_mask = @truncate(u16, options.event_mask.toInt()),
         .pointer_mode = @enumToInt(options.pointer_mode),
         .keyboard_mode = @enumToInt(options.keyboard_mode),
         .confine_to = options.confine_to.handle,

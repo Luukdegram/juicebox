@@ -22,16 +22,16 @@ root: Window,
 screen: Connection.Screen,
 
 /// The mask we use for our root window
-const root_event_mask = EventMask.getMask(&[_]EventMask{
-    .substructure_redirect,
-    .substructure_notify,
-    .button_press,
-    .structure_notify,
-    .pointer_motion,
-    .property_change,
-    .focus_change,
-    .enter_window,
-});
+const root_event_mask = EventMask{
+    .substructure_redirect = true,
+    .substructure_notify = true,
+    .button_press = true,
+    .structure_notify = true,
+    .pointer_motion = true,
+    .property_change = true,
+    .focus_change = true,
+    .enter_window = true,
+};
 
 /// Initializes a new Juicebox `Manager`. Connects with X11
 /// and handle the root window creation
@@ -64,8 +64,8 @@ pub fn init(gpa: *Allocator) !*Manager {
     try manager.root.changeAttributes(
         &[_]x.protocol.ValueMask{
             .{
-                .mask = x.protocol.WindowAttributes.event_mask.val(),
-                .value = root_event_mask,
+                .mask = .event_mask,
+                .value = root_event_mask.toInt(),
             },
         },
     );
@@ -87,7 +87,7 @@ fn grabUserButtons(self: Manager) !void {
     try input.grabButton(self.connection, .{
         .confine_to = self.root,
         .grab_window = self.root,
-        .event_mask = @enumToInt(EventMask.button_press) | @enumToInt(EventMask.button_release),
+        .event_mask = .{ .button_press = true, .button_release = true },
         .button = 0, // grab any key
         .modifiers = input.Modifiers.any(),
     });

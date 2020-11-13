@@ -46,40 +46,44 @@ pub const EventType = enum(u8) {
 
 /// Event masks to have events trigger for a specific window
 /// using any of the given masks
-pub const Mask = extern enum(u32) {
-    none = 0,
-    key_press = 1,
-    key_release = 2,
-    button_press = 4,
-    button_release = 8,
-    enter_window = 16,
-    leave_window = 32,
-    pointer_motion = 64,
-    pointer_motion_hint = 128,
-    button_1_motion = 256,
-    button_2_motion = 512,
-    button_3_motion = 1024,
-    button_4_motion = 2048,
-    button_5_motion = 4096,
-    button_motion = 8192,
-    keymap_state = 16384,
-    exposure = 32768,
-    visibility_change = 65536,
-    structure_notify = 131072,
-    resize_redirect = 262144,
-    substructure_notify = 524288,
-    substructure_redirect = 1048576,
-    focus_change = 2097152,
-    property_change = 4194304,
-    color_map_change = 8388608,
-    owner_grab_button = 16777216,
+pub const Mask = packed struct {
+    key_press: bool = false,
+    key_release: bool = false,
+    button_press: bool = false,
+    button_release: bool = false,
+    enter_window: bool = false,
+    leave_window: bool = false,
+    pointer_motion: bool = false,
+    pointer_motion_hint: bool = false,
+    button_1_motion: bool = false,
+    button_2_motion: bool = false,
+    button_3_motion: bool = false,
+    button_4_motion: bool = false,
+    button_5_motion: bool = false,
+    button_motion: bool = false,
+    keymap_state: bool = false,
+    exposure: bool = false,
+    visibility_change: bool = false,
+    structure_notify: bool = false,
+    resize_redirect: bool = false,
+    substructure_notify: bool = false,
+    substructure_redirect: bool = false,
+    focus_change: bool = false,
+    property_change: bool = false,
+    color_map_change: bool = false,
+    owner_grab_button: bool = false,
+    padding: u7 = 0,
 
-    /// Returns the mask made from a slice of `Masks`
-    /// Allows user to use enums without having to use @enumToInt
-    pub fn getMask(values: []const Mask) u32 {
-        var mask: u32 = 0;
-        for (values) |val| mask |= @enumToInt(val);
-        return mask;
+    pub fn toInt(self: @This()) u32 {
+        return @bitCast(u32, self);
+    }
+
+    pub inline fn set(self: *@This(), comptime field: []const u8) void {
+        @field(self, field) = true;
+    }
+
+    pub inline fn clear(self: *@This(), comptime field: []const u8) void {
+        @field(self, field) = false;
     }
 };
 

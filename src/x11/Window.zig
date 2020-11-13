@@ -39,7 +39,7 @@ const WindowClass = enum(u16) {
     input_output = 1,
     input_only = 2,
 
-    fn val(self: WindowClass) u16 {
+    fn toInt(self: WindowClass) u16 {
         return @enumToInt(self);
     }
 };
@@ -52,7 +52,7 @@ pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindo
 
     const mask: u32 = blk: {
         var tmp: u32 = 0;
-        for (values) |val| tmp |= val.mask;
+        for (values) |val| tmp |= val.mask.toInt();
         break :blk tmp;
     };
 
@@ -64,7 +64,7 @@ pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindo
         .height = options.height,
         .visual = screen.root_visual,
         .value_mask = mask,
-        .class = options.class.val(),
+        .class = options.class.toInt(),
     };
 
     try conn.send(window_request);
@@ -126,8 +126,8 @@ pub fn changeProperty(
         .mode = @enumToInt(mode),
         .length = total_length,
         .window = self.handle,
-        .property = property.val(),
-        .prop_type = prop_type.val(),
+        .property = property.toInt(),
+        .prop_type = prop_type.toInt(),
         .data_len = data.len(),
     };
 
@@ -144,7 +144,7 @@ pub fn changeProperty(
 pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
     const mask: u32 = blk: {
         var tmp: u32 = 0;
-        for (values) |val| tmp |= val.mask;
+        for (values) |val| tmp |= val.mask.toInt();
         break :blk tmp;
     };
 
@@ -162,7 +162,7 @@ pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
 pub fn configure(self: Window, values: []const x.ValueMask) !void {
     const mask: u32 = blk: {
         var tmp: u32 = 0;
-        for (values) |val| tmp |= val.mask;
+        for (values) |val| tmp |= val.mask.toInt();
         break :blk tmp;
     };
 
