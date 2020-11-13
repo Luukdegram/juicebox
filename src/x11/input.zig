@@ -3,26 +3,42 @@ const Window = @import("Window.zig");
 
 usingnamespace @import("protocol.zig");
 
-/// Contains the mask of the modifier keys
-pub const ModMask = enum(u16) {
-    /// shift keys
-    shift = 1,
+pub const Modifiers = packed struct {
+    /// Shift keys
+    shift: bool = false,
     /// Capslock key
-    lock = 2,
-    /// Ctrl keys
-    control = 4,
+    lock: bool = false,
+    /// Control keys
+    control: bool = false,
     /// Alt L & R + Meta L
-    @"1" = 8,
+    @"1": bool = false,
     /// Num lock
-    @"2" = 16,
+    @"2": bool = false,
     /// Empty by default
-    @"3" = 32,
+    @"3": bool = false,
     /// Super keys L & R and Hyper L
-    @"4" = 64,
+    @"4": bool = false,
     /// ISO_Level3_Shift and Mode Switch key
-    @"5" = 128,
-    /// Any of the modifier keys
-    any = 32768,
+    @"5": bool = false,
+
+    padding: u7 = 0,
+    any_bit: bool = false,
+
+    pub fn toInt(self: @This()) u16 {
+        return @bitCast(u16, self);
+    }
+
+    pub inline fn set(self: *@This(), comptime field: []const u8) void {
+        @field(self, field) = true;
+    }
+
+    pub inline fn clear(self: *@This(), comptime field: []const u8) void {
+        @field(self, field) = false;
+    }
+
+    pub fn any() @This() {
+        return .{ .any_bit = true };
+    }
 };
 
 /// Options to set when grabbing a button
@@ -43,7 +59,7 @@ pub const GrabButtonOptions = struct {
     /// Which button to grab
     button: u8,
     /// The modifier required to grab a button
-    modifiers: ModMask,
+    modifiers: Modifiers,
 };
 
 /// Whether the grab mode should be sync -or asynchronous
@@ -63,16 +79,16 @@ pub fn grabButton(conn: *Connection, options: GrabButtonOptions) !void {
         .confine_to = options.confine_to.handle,
         .cursor = options.cursor,
         .button = options.button,
-        .modifiers = @enumToInt(options.modifiers),
+        .modifiers = options.modifiers.toInt(),
     });
 }
 
 /// Ungrabs a button and its modifiers. Use 0 for `button` to ungrab all buttons
-pub fn ungrabButton(conn: *Connection, button: u8, window: Window, modifiers: ModMask) !void {
+pub fn ungrabButton(conn: *Connection, button: u8, window: Window, modifiers: Modifiers) !void {
     try conn.send(UngrabButtonRequest{
         .button = button,
         .window = window.handle,
-        .modifiers = @enumToInt(modifiers),
+        .modifiers = modifiers.toInt(),
     });
 }
 
@@ -83,7 +99,7 @@ pub const GrabKeyOptions = struct {
     /// Window that will recieve events for those keys
     grab_window: Window,
     /// Which modifier keys to be used
-    modifiers: ModMask,
+    modifiers: Modifiers,
     /// The actual key to grab
     key_code: Types.Keycode,
     /// How the pointer events are triggered
@@ -97,7 +113,7 @@ pub fn grabKey(conn: *Connection, options: GrabKeyOptions) !void {
     try conn.send(GrabKeyRequest{
         .owner_events = @boolToInt(options.owner_events),
         .grab_window = options.grab_window.handle,
-        .modifiers = @enumToInt(options.modifiers),
+        .modifiers = options.modifiers.toInt(),
         .key = options.key_code,
         .pointer_mode = options.pointer_mode,
         .keyboard_mode = options.keyboard_mode,
@@ -105,11 +121,11 @@ pub fn grabKey(conn: *Connection, options: GrabKeyOptions) !void {
 }
 
 /// Ungrabs the key and its modifiers for the specified window
-pub fn ungrabKey(conn: *Connection, key: Types.Keycode, window: Window, modifiers: ModMask) !void {
+pub fn ungrabKey(conn: *Connection, key: Types.Keycode, window: Window, modifiers: Modifiers) !void {
     try conn.send(UngrabKeyRequest{
         .key_code = key,
         .window = window.handle,
-        .modifiers = @enumToInt(modifiers),
+        .modifiers = modifiers.toInt(),
     });
 }
 

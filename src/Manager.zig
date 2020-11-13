@@ -69,6 +69,7 @@ pub fn init(gpa: *Allocator) !*Manager {
             },
         },
     );
+    // try manager.grabUserButtons();
 
     return manager;
 }
@@ -84,10 +85,10 @@ pub fn deinit(self: *Manager) void {
 /// TODO: Create user configuration and make the manager aware of it
 fn grabUserButtons(self: Manager) !void {
     try input.grabButton(self.connection, .{
-        .confine_to = self.root.handle,
-        .grab_window = self.root.handle,
+        .confine_to = self.root,
+        .grab_window = self.root,
         .event_mask = @enumToInt(EventMask.button_press) | @enumToInt(EventMask.button_release),
         .button = 0, // grab any key
-        .modifiers = .any, // any modifier
+        .modifiers = input.Modifiers.any(),
     });
 }
