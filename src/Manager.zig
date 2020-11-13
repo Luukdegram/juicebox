@@ -89,6 +89,6 @@ fn grabUserButtons(self: Manager) !void {
         .grab_window = self.root,
         .event_mask = .{ .button_press = true, .button_release = true },
         .button = 0, // grab any key
-        .modifiers = input.Modifiers.any(),
+        .modifiers = input.Modifiers.any,
     });
 }

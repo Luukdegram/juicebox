@@ -24,6 +24,8 @@ pub const Modifiers = packed struct {
     padding: u7 = 0,
     any_bit: bool = false,
 
+    pub const any: @This() = .{ .any_bit = true };
+
     pub fn toInt(self: @This()) u16 {
         return @bitCast(u16, self);
     }
@@ -34,10 +36,6 @@ pub const Modifiers = packed struct {
 
     pub inline fn clear(self: *@This(), comptime field: []const u8) void {
         @field(self, field) = false;
-    }
-
-    pub fn any() @This() {
-        return .{ .any_bit = true };
     }
 };
 
