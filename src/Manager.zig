@@ -69,8 +69,7 @@ pub fn init(gpa: *Allocator) !*Manager {
             },
         },
     );
-    // try manager.grabUserButtons();
-
+    try conn.getKeyMapping();
     return manager;
 }
 

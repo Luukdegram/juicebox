@@ -19,11 +19,8 @@ pub fn main() anyerror!void {
 
     var i: usize = 0;
     while (true) : (i += 1) {
-        const response_byte = try manager.connection.reader().readByte();
-
         var bytes: [32]u8 = undefined;
-        bytes[0] = response_byte;
-        try manager.connection.reader().readNoEof(bytes[1..]);
+        try manager.connection.reader().readNoEof(&bytes);
 
         if (bytes[0] > 1 and bytes[0] < 35) {
             const event = events.Event.fromBytes(bytes);

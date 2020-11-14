@@ -33,7 +33,7 @@ pub const WindowConfig = extern enum(u32) {
     sibling = 32,
     stack_mode = 64,
 
-    pub fn val(self: WindowConfig) u32 {
+    pub fn toInt(self: WindowConfig) u32 {
         return @enumToInt(self);
     }
 };
@@ -357,4 +357,20 @@ pub const KillClientRequest = extern struct {
     pad: u8 = 0,
     length: u16 = @sizeOf(KillClientRequest) / 4, //2
     window: Types.Window,
+};
+
+pub const KeyboardMappingRequest = extern struct {
+    major_opcode: u8 = 101,
+    pad: u8 = 0,
+    length: u16 = @sizeOf(KeyboardMappingRequest) / 4,
+    first_keycode: Types.Keycode,
+    count: u8,
+};
+
+pub const KeyboardMappingReply = extern struct {
+    response_type: u8,
+    keysyms_per_keycode: u8,
+    sequence: u16,
+    length: u32,
+    pad: [24]u8,
 };

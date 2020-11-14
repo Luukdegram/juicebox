@@ -107,7 +107,7 @@ pub fn genXid(self: *Connection) !u32 {
         if (xid.last == 0) {
             xid.max = self.setup.mask;
         } else {
-            if (!try supportsExtension(self, "XC-MISC")) {
+            if (!try self.supportsExtension("XC-MISC")) {
                 return error.MiscUnsupported;
             }
 
@@ -167,7 +167,7 @@ pub fn send(self: *const Connection, data: anytype) !void {
 }
 
 /// Reads the given type from the X11 server
-pub fn recv(self: *Connection, comptime T: type) ReadError!T {
+pub fn recv(self: *Connection, comptime T: type) !T {
     return self.reader().readStruct(T);
 }
 
@@ -181,6 +181,23 @@ pub fn disconnect(self: *Connection) void {
     self.gpa.free(self.screens);
     self.handle.close();
     self.* = undefined;
+}
+
+/// Returns the keymapping of user's keyboard
+pub fn getKeyMapping(self: *Connection) !void {
+    try self.send(protocol.KeyboardMappingRequest{
+        .first_keycode = self.setup.min_keycode,
+        .count = self.setup.max_keycode - self.setup.min_keycode,
+    });
+
+    const reply = try self.recv(protocol.KeyboardMappingReply);
+
+    std.debug.print("Reply: {}\n", .{reply});
+    for (reply.pad) |c| {
+        std.debug.print("{c} ", .{c});
+    }
+    const keycodes = reply.length;
+    const keysyms = reply.length;
 }
 
 /// Checks if the X11 server supports the given extension or not
