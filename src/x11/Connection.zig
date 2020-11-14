@@ -183,23 +183,6 @@ pub fn disconnect(self: *Connection) void {
     self.* = undefined;
 }
 
-/// Returns the keymapping of user's keyboard
-pub fn getKeyMapping(self: *Connection) !void {
-    try self.send(protocol.KeyboardMappingRequest{
-        .first_keycode = self.setup.min_keycode,
-        .count = self.setup.max_keycode - self.setup.min_keycode,
-    });
-
-    const reply = try self.recv(protocol.KeyboardMappingReply);
-
-    std.debug.print("Reply: {}\n", .{reply});
-    for (reply.pad) |c| {
-        std.debug.print("{c} ", .{c});
-    }
-    const keycodes = reply.length;
-    const keysyms = reply.length;
-}
-
 /// Checks if the X11 server supports the given extension or not
 fn supportsExtension(self: *Connection, ext_name: []const u8) !bool {
     const request = protocol.QueryExtensionRequest{

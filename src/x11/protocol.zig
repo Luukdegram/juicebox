@@ -332,7 +332,7 @@ pub const GrabKeyRequest = extern struct {
     key: Types.Keycode,
     pointer_mode: u8,
     keyboard_mode: u8,
-    pad: [3]u8 = &[_]u8{0} ** 3,
+    pad: [3]u8 = [_]u8{0} ** 3,
 };
 
 pub const UngrabKeyRequest = extern struct {
@@ -349,7 +349,7 @@ pub const ConfigureWindowRequest = extern struct {
     length: u16,
     window: Types.Window,
     mask: u16,
-    pad1: [2]u8 = &[_]u8{ 0, 0 },
+    pad1: [2]u8 = [_]u8{ 0, 0 },
 };
 
 pub const KillClientRequest = extern struct {
@@ -365,6 +365,7 @@ pub const KeyboardMappingRequest = extern struct {
     length: u16 = @sizeOf(KeyboardMappingRequest) / 4,
     first_keycode: Types.Keycode,
     count: u8,
+    pad1: [2]u8 = [_]u8{ 0, 0 },
 };
 
 pub const KeyboardMappingReply = extern struct {

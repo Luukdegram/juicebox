@@ -69,7 +69,7 @@ pub fn init(gpa: *Allocator) !*Manager {
             },
         },
     );
-    try conn.getKeyMapping();
+
     return manager;
 }
 
@@ -90,4 +90,17 @@ fn grabUserButtons(self: Manager) !void {
         .button = 0, // grab any key
         .modifiers = input.Modifiers.any,
     });
+}
+
+/// Grab the keys the user has defined
+fn grabKeys(self: Manager) !void {
+    // Ungrab all keys
+    try input.ungrabKey(self.connection, 0, self.root.handle, input.Modifiers.any.toInt());
+
+    // Get all keysyms
+    const table = try input.KeysymTable.getMapping(self.connection);
+    defer table.deinit(self.connection.gpa);
+
+    // find the user defined key
+    
 }
