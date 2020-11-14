@@ -19,7 +19,7 @@ pub const WindowAttributes = extern enum(u32) {
     colormap = 8192,
     cursor = 16348,
 
-    pub fn val(self: WindowAttributes) u32 {
+    pub fn toInt(self: WindowAttributes) u32 {
         return @enumToInt(self);
     }
 };
@@ -128,14 +128,14 @@ pub const Atoms = enum(u32) {
     wm_transient_for = 68,
 
     /// Retrurns the value of the given atom as u32
-    pub fn val(self: Atoms) u32 {
+    pub fn toInt(self: Atoms) u32 {
         return @enumToInt(self);
     }
 };
 
 /// Contains the mask and its value
 pub const ValueMask = struct {
-    mask: u32,
+    mask: WindowAttributes,
     value: u32,
 };
 
