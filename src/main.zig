@@ -1,10 +1,10 @@
 const std = @import("std");
 const Manager = @import("Manager.zig");
-const log = std.log;
+const log = std.log.scoped(.juicebox);
 const events = @import("x11").events;
 const errors = @import("x11").errors;
 
-pub const io_mode = .evented;
+//pub const io_mode = .evented;
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -12,33 +12,10 @@ pub fn main() anyerror!void {
 
     log.info("Starting juicebox...", .{});
 
-    var manager = try Manager.init(&gpa.allocator);
-    defer manager.deinit();
+    const manager = try Manager.init(&gpa.allocator);
+    errdefer manager.deinit();
 
     log.info("Juicebox initialized", .{});
 
-    var i: usize = 0;
-    while (true) : (i += 1) {
-        var bytes: [32]u8 = undefined;
-        try manager.connection.reader().readNoEof(&bytes);
-
-        if (bytes[0] > 1 and bytes[0] < 35) {
-            const event = events.Event.fromBytes(bytes);
-
-            if (event != .motion_notify) {
-                log.debug("EVENT: {}", .{@tagName(std.meta.activeTag(event))});
-            }
-
-            switch (event) {
-                .button_press => |button| log.debug("Clicked button: {}", .{button.detail}),
-                .key_press => |key| log.debug("Pressed key: {}", .{key.detail}),
-                else => continue,
-            }
-        } else if (bytes[0] == 0) {
-            // error occured
-            const err = errors.Error.fromBytes(bytes);
-            log.err("{} - seq: {}", .{ err.code, err.sequence });
-            log.debug("Error details: {}", .{err});
-        }
-    }
+    try manager.run();
 }

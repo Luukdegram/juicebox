@@ -1,10 +1,14 @@
 const std = @import("std");
 const x = @import("x11");
+const config = @import("config.zig").default_config;
+const log = std.log.scoped(.juicebox_manager);
 const Connection = x.Connection;
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
 const EventMask = x.events.Mask;
 const input = x.input;
+const events = x.events;
+const errors = x.errors;
 
 const Manager = @This();
 
@@ -20,6 +24,8 @@ root: Window,
 /// The currently active screen. So we know which screen to
 /// speak to when a user has multiple monitors.
 screen: Connection.Screen,
+/// The table of keysymbols which is used to convert to/from keycodes and keysyms
+keysym_table: input.KeysymTable,
 
 /// The mask we use for our root window
 const root_event_mask = EventMask{
@@ -49,6 +55,7 @@ pub fn init(gpa: *Allocator) !*Manager {
         .connection = conn,
         .root = undefined,
         .screen = undefined,
+        .keysym_table = undefined,
     };
 
     // active screen as the first screen we find
@@ -70,14 +77,62 @@ pub fn init(gpa: *Allocator) !*Manager {
         },
     );
 
+    // Grabs all keys the user has defined
+    try manager.grabKeys();
+
     return manager;
 }
 
 /// Closes the connection with X11 and frees all memory
 pub fn deinit(self: *Manager) void {
     self.connection.disconnect();
+    self.keysym_table.deinit(self.gpa);
     self.gpa.destroy(self.connection);
     self.gpa.destroy(self);
+}
+
+/// Runs the main event loop
+pub fn run(self: *Manager) !void {
+    while (true) {
+        var bytes: [32]u8 = undefined;
+        try self.connection.reader().readNoEof(&bytes);
+
+        if (bytes[0] > 1 and bytes[0] < 35) {
+            const event = events.Event.fromBytes(bytes);
+
+            if (event != .motion_notify) {
+                log.debug("EVENT: {}", .{@tagName(std.meta.activeTag(event))});
+            }
+
+            switch (event) {
+                .button_press => |button| log.debug("Clicked button: {}", .{button.detail}),
+                .key_press => |key| try self.onKeyPress(key),
+                .create_notify => |create| {
+                    try Window.map(self.connection, create.window);
+                },
+                else => continue,
+            }
+        } else if (bytes[0] == 0) {
+            // error occured
+            const err = errors.Error.fromBytes(bytes);
+            log.err("{} - seq: {}", .{ err.code, err.sequence });
+            log.debug("Error details: {}", .{err});
+        }
+    }
+}
+
+/// Handles when a user presses a user-defined key binding
+fn onKeyPress(self: *Manager, event: events.InputDeviceEvent) !void {
+    for (config.bindings) |binding| {
+        if (binding.symbol != self.keysym_table.keycodeToKeysym(event.detail)) continue;
+
+        // found a key so execute its command
+        switch (binding.action) {
+            .cmd => |cmd| try runCmd(self.gpa, cmd),
+            .function => |func| {},
+        }
+        return;
+    }
 }
 
 /// Grabs the mouse buttons the user has defined
@@ -93,21 +148,31 @@ fn grabUserButtons(self: Manager) !void {
 }
 
 /// Grab the keys the user has defined
-/// TODO: Create user configuration and make the manager aware of it
-fn grabKeys(self: Manager) !void {
+fn grabKeys(self: *Manager) !void {
     // Ungrab all keys
     try input.ungrabKey(self.connection, 0, self.root, input.Modifiers.any);
 
     // Get all keysyms
-    const table = try input.KeysymTable.init(self.connection);
-    defer table.deinit(self.connection.gpa);
+    self.keysym_table = try input.KeysymTable.init(self.connection);
 
-    const sym: u32 = 0x0071; // q
-    const keycode = table.keysymToKeycode(sym); // should be 24
+    for (config.bindings) |binding| {
+        try input.grabKey(
+            self.connection,
+            .{
+                .grab_window = self.root,
+                .modifiers = binding.modifier,
+                .key_code = self.keysym_table.keysymToKeycode(binding.symbol),
+            },
+        );
+    }
+}
 
-    try input.grabKey(self.connection, .{
-        .grab_window = self.root,
-        .modifiers = input.Modifiers.any,
-        .key_code = keycode,
-    });
+/// Runs a shell cmd
+fn runCmd(gpa: *Allocator, cmd: []const []const u8) !void {
+    if (cmd.len == 0) return;
+
+    var process = try std.ChildProcess.init(cmd, gpa);
+    defer process.deinit();
+
+    process.spawn() catch |err| log.err("Could not spawn cmd {}", .{cmd[0]});
 }

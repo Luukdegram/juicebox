@@ -180,7 +180,6 @@ pub fn disconnect(self: *Connection) void {
     }
     self.gpa.free(self.screens);
     self.handle.close();
-    self.* = undefined;
 }
 
 /// Checks if the X11 server supports the given extension or not

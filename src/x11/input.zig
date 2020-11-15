@@ -13,15 +13,15 @@ pub const Modifiers = packed struct {
     /// Control keys
     control: bool = false,
     /// Alt L & R + Meta L
-    @"1": bool = false,
+    mod1: bool = false,
     /// Num lock
-    @"2": bool = false,
+    mod2: bool = false,
     /// Empty by default
-    @"3": bool = false,
+    mod3: bool = false,
     /// Super keys L & R and Hyper L
-    @"4": bool = false,
+    mod4: bool = false,
     /// ISO_Level3_Shift and Mode Switch key
-    @"5": bool = false,
+    mod5: bool = false,
 
     padding: u7 = 0,
     any_bit: bool = false,
