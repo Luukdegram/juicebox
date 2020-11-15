@@ -182,7 +182,7 @@ pub fn disconnect(self: *Connection) void {
     self.handle.close();
 }
 
-/// Checks if the X11 server supports the given extension or not
+/// Checks if the X11 server supports the given extension or: not
 fn supportsExtension(self: *Connection, ext_name: []const u8) !bool {
     const request = protocol.QueryExtensionRequest{
         .length = @intCast(u16, @sizeOf(protocol.QueryExtensionRequest) + ext_name.len + xpad(ext_name.len)) / 4,

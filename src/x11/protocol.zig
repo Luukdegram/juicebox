@@ -24,19 +24,43 @@ pub const WindowAttributes = extern enum(u32) {
     }
 };
 
-pub const WindowConfig = extern enum(u32) {
-    x = 1,
-    y = 2,
-    width = 4,
-    height = 8,
-    border_width = 16,
-    sibling = 32,
-    stack_mode = 64,
+pub const WindowConfigMask = packed struct {
+    x: bool = false,
+    y: bool = false,
+    width: bool = false,
+    height: bool = false,
+    border_width: bool = false,
+    sibling: bool = false,
+    stack_mode: bool = false,
+    pad: u9 = 0,
 
-    pub fn toInt(self: WindowConfig) u32 {
-        return @enumToInt(self);
+    pub fn toInt(self: WindowConfigMask) u16 {
+        return @bitCast(u16, self);
     }
 };
+
+pub const WindowChanges = struct {
+    x: u16 = 0,
+    y: u16 = 0,
+    width: u16 = 0,
+    height: u16 = 0,
+    border_width: u16 = 0,
+    sibling: Types.Window = 0,
+    stack_mode: u8 = 0,
+};
+
+/// Determines the length of values to be given depending on the given mask
+pub fn maskLen(mask: anytype) u16 {
+    const std = @import("std");
+    const T = @TypeOf(mask);
+    std.debug.assert(@typeInfo(T) == .Struct);
+
+    var len: u16 = 0;
+    inline for (std.meta.fields(T)) |field| {
+        if (field.field_type == bool and @field(mask, field.name)) len += 1;
+    }
+    return len;
+}
 
 /// X Protocol Types, makes it easier to read data
 pub const Types = struct {

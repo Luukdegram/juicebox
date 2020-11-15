@@ -107,9 +107,8 @@ pub fn run(self: *Manager) !void {
             switch (event) {
                 .button_press => |button| log.debug("Clicked button: {}", .{button.detail}),
                 .key_press => |key| try self.onKeyPress(key),
-                .create_notify => |create| {
-                    try Window.map(self.connection, create.window);
-                },
+                .configure_request => |conf| try self.onConfigure(conf),
+                .map_request => |map| try self.onMap(map),
                 else => continue,
             }
         } else if (bytes[0] == 0) {
@@ -133,6 +132,34 @@ fn onKeyPress(self: *Manager, event: events.InputDeviceEvent) !void {
         }
         return;
     }
+}
+
+/// Configures a new window
+fn onConfigure(self: *Manager, event: events.ConfigureRequest) !void {
+    const window = Window{
+        .handle = event.window,
+        .connection = self.connection,
+    };
+    const mask = @bitCast(x.protocol.WindowConfigMask, event.mask);
+
+    const window_config = x.protocol.WindowChanges{
+        .x = event.x,
+        .y = event.y,
+        .width = event.width,
+        .height = event.height,
+        .border_width = event.border_width,
+        .sibling = event.sibling,
+        .stack_mode = event.stack_mode,
+    };
+
+    try window.configure(mask, window_config);
+    log.debug("Configured window id: {d}", .{event.window});
+}
+
+/// Maps a new window
+fn onMap(self: *Manager, event: events.MapRequest) !void {
+    try Window.map(self.connection, event.window);
+    log.debug("Mapped window id: {d}", .{event.window});
 }
 
 /// Grabs the mouse buttons the user has defined

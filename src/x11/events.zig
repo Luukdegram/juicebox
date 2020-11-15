@@ -101,7 +101,7 @@ pub const Event = union(EventType) {
     destroy_notify: DestroyEvent,
     unmap_notify: UnmapEvent,
     map_notify: MapEvent,
-    map_request: MapRequestEvent,
+    map_request: MapRequest,
     reparent_notify: ReparentEvent,
     configure_notify: ConfigureEvent,
     configure_request: ConfigureRequest,
@@ -146,7 +146,7 @@ pub const Event = union(EventType) {
             .destroy_notify => Event{ .destroy_notify = toEvent(DestroyEvent, &bytes) },
             .unmap_notify => Event{ .unmap_notify = toEvent(UnmapEvent, &bytes) },
             .map_notify => Event{ .map_notify = toEvent(MapEvent, &bytes) },
-            .map_request => Event{ .map_request = toEvent(MapRequestEvent, &bytes) },
+            .map_request => Event{ .map_request = toEvent(MapRequest, &bytes) },
             .reparent_notify => Event{ .reparent_notify = toEvent(ReparentEvent, &bytes) },
             .configure_notify => Event{ .configure_notify = toEvent(ConfigureEvent, &bytes) },
             .configure_request => Event{ .configure_request = toEvent(ConfigureRequest, &bytes) },
@@ -342,7 +342,7 @@ pub const MapEvent = extern struct {
 
 /// Event generated when a request is issued on an unmapped window
 /// which has its override_redirect set to false
-pub const MapRequestEvent = extern struct {
+pub const MapRequest = extern struct {
     code: u8,
     pad: u8,
     sequence: u8,

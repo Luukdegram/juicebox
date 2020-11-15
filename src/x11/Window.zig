@@ -159,21 +159,21 @@ pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
 }
 
 /// Configures the window using the given values and mask
-pub fn configure(self: Window, values: []const x.ValueMask) !void {
-    const mask: u32 = blk: {
-        var tmp: u32 = 0;
-        for (values) |val| tmp |= val.mask.toInt();
-        break :blk tmp;
-    };
-
+pub fn configure(self: Window, mask: x.WindowConfigMask, config: x.WindowChanges) !void {
     try self.connection.send(
         x.ConfigureWindowRequest{
-            .length = @sizeOf(x.ChangeWindowAttributes) / 4 + @intCast(u16, values.len),
+            .length = @sizeOf(x.ChangeWindowAttributes) / 4 + x.maskLen(mask),
             .window = self.handle,
-            .mask = mask,
+            .mask = mask.toInt(),
         },
     );
-    for (values) |val| try self.connection.send(val.value);
+
+    inline for (std.meta.fields(x.WindowConfigMask)) |field| {
+        if (field.field_type == bool and @field(mask, field.name)) {
+            try self.connection.send(@field(config, field.name));
+        }
+    }
+    //for (values) |val| try self.connection.send(val.value);
 }
 
 /// Closes a window
