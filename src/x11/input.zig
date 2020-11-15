@@ -95,9 +95,9 @@ pub const GrabKeyOptions = struct {
     /// The actual key to grab
     key_code: Types.Keycode,
     /// How the pointer events are triggered
-    pointer_mode: GrabMode.@"async",
+    pointer_mode: GrabMode = .@"async",
     /// How the keyboard events are triggered
-    keyboard_mode: GrabMode.@"async",
+    keyboard_mode: GrabMode = .@"async",
 };
 
 /// Grabs a key with optional modifiers for the given window
@@ -107,15 +107,15 @@ pub fn grabKey(conn: *Connection, options: GrabKeyOptions) !void {
         .grab_window = options.grab_window.handle,
         .modifiers = options.modifiers.toInt(),
         .key = options.key_code,
-        .pointer_mode = options.pointer_mode,
-        .keyboard_mode = options.keyboard_mode,
+        .pointer_mode = @enumToInt(options.pointer_mode),
+        .keyboard_mode = @enumToInt(options.keyboard_mode),
     });
 }
 
 /// Ungrabs the key and its modifiers for the specified window
 pub fn ungrabKey(conn: *Connection, key: Types.Keycode, window: Window, modifiers: Modifiers) !void {
     try conn.send(UngrabKeyRequest{
-        .key_code = key,
+        .key = key,
         .window = window.handle,
         .modifiers = modifiers.toInt(),
     });
@@ -124,16 +124,16 @@ pub fn ungrabKey(conn: *Connection, key: Types.Keycode, window: Window, modifier
 /// Table containing a list of `Types.keysym`
 /// can be retrieved from a connection
 pub const KeysymTable = struct {
-    list: []Types.keysym,
+    list: []Types.Keysym,
     keysyms_per_keycode: u8,
     min_keycode: u8,
     max_keycode: u8,
 
-    ///
-    pub const Nokeysymbol: u32 = 0x000;
+    /// No Symbol (returned when a given keysym cannot be found)
+    pub const no_symbol: u32 = 0x000;
 
     /// Returns the keymapping of user's keyboard
-    pub fn getMapping(con: *Connection) !KeysymTable {
+    pub fn init(con: *Connection) !KeysymTable {
         const count = con.setup.max_keycode - con.setup.min_keycode + 1;
         try con.send(KeyboardMappingRequest{
             .first_keycode = con.setup.min_keycode,
@@ -142,9 +142,9 @@ pub const KeysymTable = struct {
 
         const reply = try con.recv(KeyboardMappingReply);
 
-        const keysyms = try con.gpa.alloc(Types.keysym, reply.length);
+        const keysyms = try con.gpa.alloc(Types.Keysym, reply.length);
         for (keysyms) |*keysym| {
-            keysym.* = try con.reader().readIntNative(Types.keysym);
+            keysym.* = try con.reader().readIntNative(Types.Keysym);
         }
 
         return KeysymTable{
@@ -156,53 +156,56 @@ pub const KeysymTable = struct {
     }
 
     /// Converts a keysym to a keycode
-    pub fn keysymToKeycode(self: KeysymTable, keysym: Types.keysym) !Types.keycode {
+    pub fn keysymToKeycode(self: KeysymTable, keysym: Types.Keysym) Types.Keycode {
         var outer: u8 = 0;
         while (outer < self.keysyms_per_keycode) : (outer += 1) {
             var i: u8 = self.min_keycode;
-            while (i < self.max_keycode) : (i += 1) {
-                if (self.keysymAtCol(i, outer) == keysym) return i;
-            }
+            while (i < self.max_keycode) : (i += 1) if (self.keysymAtCol(i, outer) == keysym) return i;
         }
+        return 0;
     }
 
     /// Finds a `Types.keysym` for the given `col` and `keycode`
-    fn keysymAtCol(self: KeysymTable, keycode: Types.Keycode, col: u8) Types.keysym {
+    fn keysymAtCol(self: KeysymTable, keycode: Types.Keycode, col: u8) Types.Keysym {
         if ((col >= self.keysyms_per_keycode and col > 3) or
             keycode < self.min_keycode or
             keycode > self.max_keycode)
-            return Nokeysymbol;
+            return no_symbol;
 
-        var per = self.keysyms_per_keycode;
+        var per: u32 = self.keysyms_per_keycode;
         var mut_col = col;
-        const start = (keycode - self.min_keycode) * per;
+        const start: usize = (keycode - self.min_keycode) * per;
         const keysyms = self.list[start .. start + per];
         if (col < 4) {
             if (col > 1) {
-                while ((per > 2) and keysyms[per - 1] == Nokeysymbol)
+                while (per > 2 and keysyms[per - 1] == no_symbol)
                     per -= 1;
 
                 if (per < 3)
                     mut_col -= 2;
             }
 
-            if (per <= mut_col | 1 or keysyms[mut_col | 1] == Nokeysymbol) {
+            if (per <= mut_col | 1 or keysyms[mut_col | 1] == no_symbol) {
                 var lower: Types.Keysym = undefined;
                 var upper: Types.Keysym = undefined;
-                convertCase(keysyms[col & ~1], &lower, &upper);
+                convertCase(keysyms[mut_col & ~@as(u32, 1)], &lower, &upper);
 
-                return if (col & 1 == 0)
+                return if (mut_col & 1 == 0)
                     lower
                 else if (lower == upper)
-                    Nokeysymbol
+                    no_symbol
                 else
                     upper;
             }
         }
+
+        return keysyms[mut_col];
     }
 
     /// Converts a keycode to a keysym
-    pub fn keycodeToKeysym(self: KeysymTable, keycode: Types.Keycode) !Types.keysym {}
+    pub fn keycodeToKeysym(self: KeysymTable, keycode: Types.Keycode) Types.Keysym {
+        return self.keysymAtCol(keycode, 0);
+    }
 
     /// Frees the keysyms list
     pub fn deinit(self: KeysymTable, alloc: *@import("std").mem.Allocator) void {
@@ -211,7 +214,7 @@ pub const KeysymTable = struct {
 };
 
 /// Converts the given `keysym` into a lower and upper `Types.keysym`
-fn convertCase(keysym: Types.keysym, lower: *Types.keysym, upper: *Types.keysym) void {
+fn convertCase(keysym: Types.Keysym, lower: *Types.Keysym, upper: *Types.Keysym) void {
 
     // latin 1
     if (keysym < 0x100) return ucsConvertCase(keysym, lower, upper);
@@ -317,13 +320,13 @@ fn convertCase(keysym: Types.keysym, lower: *Types.keysym, upper: *Types.keysym)
             else if (keysym == XK_Ydiaeresis)
                 lower.* = XK_ydiaeresis;
         },
-        else => unreachable,
+        else => {},
     }
 }
 
 /// Converts unicode cases
-fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym) void {
-    const IPAExt_upper_mapping = []u16{
+fn ucsConvertCase(code: Types.Keysym, lower: *Types.Keysym, upper: *Types.Keysym) void {
+    const IPAExt_upper_mapping = [_]u16{
         0x0181, 0x0186, 0x0255, 0x0189, 0x018A,
         0x0258, 0x018F, 0x025A, 0x0190, 0x025C,
         0x025D, 0x025E, 0x025F, 0x0193, 0x0261,
@@ -332,14 +335,14 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         0x026C, 0x026D, 0x026E, 0x019C, 0x0270,
         0x0271, 0x019D, 0x0273, 0x0274, 0x019F,
         0x0276, 0x0277, 0x0278, 0x0279, 0x027A,
-        0x027B, 0x027C, 0x027D, 0x027E, 0x027F,
+        0x027B, 0x027C, 0x027D, 0x027E, 0x0_27F,
         0x01A6, 0x0281, 0x0282, 0x01A9, 0x0284,
         0x0285, 0x0286, 0x0287, 0x01AE, 0x0289,
         0x01B1, 0x01B2, 0x028C, 0x028D, 0x028E,
         0x028F, 0x0290, 0x0291, 0x01B7,
     };
 
-    const latinExtB_upper_mapping = []u16{
+    const latinExtB_upper_mapping = [_]u16{
         0x0180, 0x0181, 0x0182, 0x0182, 0x0184, 0x0184, 0x0186, 0x0187,
         0x0187, 0x0189, 0x018A, 0x018B, 0x018B, 0x018D, 0x018E, 0x018F,
         0x0190, 0x0191, 0x0191, 0x0193, 0x0194, 0x01F6, 0x0196, 0x0197,
@@ -352,7 +355,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         0x01C7, 0x01C7, 0x01CA, 0x01CA, 0x01CA,
     };
 
-    const latinExtB_lower_mapping = []u16{
+    const latinExtB_lower_mapping = [_]u16{
         0x0180, 0x0253, 0x0183, 0x0183, 0x0185, 0x0185, 0x0254, 0x0188,
         0x0188, 0x0256, 0x0257, 0x018C, 0x018C, 0x018D, 0x01DD, 0x0259,
         0x025B, 0x0192, 0x0192, 0x0260, 0x0263, 0x0195, 0x0269, 0x0268,
@@ -365,7 +368,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         0x01C9, 0x01C9, 0x01CC, 0x01CC, 0x01CC,
     };
 
-    const greek_upper_mapping = u16{
+    const greek_upper_mapping = [_]u16{
         0x0000, 0x0000, 0x0000, 0x0000, 0x0374, 0x0375, 0x0000, 0x0000,
         0x0000, 0x0000, 0x037A, 0x0000, 0x0000, 0x0000, 0x037E, 0x0000,
         0x0000, 0x0000, 0x0000, 0x0000, 0x0384, 0x0385, 0x0386, 0x0387,
@@ -386,7 +389,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         0x03F7, 0x03F9, 0x03FA, 0x03FA, 0x0000, 0x0000, 0x0000, 0x0000,
     };
 
-    const greek_lower_mapping = []u16{
+    const greek_lower_mapping = [_]u16{
         0x0000, 0x0000, 0x0000, 0x0000, 0x0374, 0x0375, 0x0000, 0x0000,
         0x0000, 0x0000, 0x037A, 0x0000, 0x0000, 0x0000, 0x037E, 0x0000,
         0x0000, 0x0000, 0x0000, 0x0000, 0x0384, 0x0385, 0x03AC, 0x0387,
@@ -407,7 +410,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         0x03F8, 0x03F2, 0x03FB, 0x03FB, 0x0000, 0x0000, 0x0000, 0x0000,
     };
 
-    const greekExt_lower_mapping = []u16{
+    const greekExt_lower_mapping = [_]u16{
         0x1F00, 0x1F01, 0x1F02, 0x1F03, 0x1F04, 0x1F05, 0x1F06, 0x1F07,
         0x1F00, 0x1F01, 0x1F02, 0x1F03, 0x1F04, 0x1F05, 0x1F06, 0x1F07,
         0x1F10, 0x1F11, 0x1F12, 0x1F13, 0x1F14, 0x1F15, 0x0000, 0x0000,
@@ -442,7 +445,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         0x1F78, 0x1F79, 0x1F7C, 0x1F7D, 0x1FF3, 0x1FFD, 0x1FFE, 0x0000,
     };
 
-    const greekExt_upper_mapping = []u32{
+    const greekExt_upper_mapping = [_]u32{
         0x1F08, 0x1F09, 0x1F0A, 0x1F0B, 0x1F0C, 0x1F0D, 0x1F0E, 0x1F0F,
         0x1F08, 0x1F09, 0x1F0A, 0x1F0B, 0x1F0C, 0x1F0D, 0x1F0E, 0x1F0F,
         0x1F18, 0x1F19, 0x1F1A, 0x1F1B, 0x1F1C, 0x1F1D, 0x0000, 0x0000,
@@ -507,12 +510,12 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
             (code >= 0x0132 and code <= 0x0137) or
             (code >= 0x014a and code <= 0x0177))
         {
-            upper.* = code & ~1;
+            upper.* = code & ~@as(u32, 1);
             lower.* = code | 1;
         } else if ((code >= 0x0139 and code <= 0x0148) or
             (code >= 0x0179 and code <= 0x017e))
         {
-            if (code & 1)
+            if (code & 1 == 1)
                 lower.* += 1
             else
                 upper.* -= 1;
@@ -530,7 +533,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
     // Latin Extended-B, U+0180 to U+024F
     if (code >= 0x0180 and code <= 0x024f) {
         if (code >= 0x01cd and code <= 0x01dc) {
-            if (code & 1)
+            if (code & 1 == 1)
                 lower.* += 1
             else
                 upper.* -= 1;
@@ -540,7 +543,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
             (code >= 0x0222 and code <= 0x0233))
         {
             lower.* |= 1;
-            upper.* &= ~1;
+            upper.* &= ~@as(u32, 1);
         } else if (code >= 0x0180 and code <= 0x01cc) {
             lower.* = latinExtB_lower_mapping[code - 0x0180];
             upper.* = latinExtB_upper_mapping[code - 0x0180];
@@ -598,10 +601,10 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
             (code >= 0x04f8 and code <= 0x04f9) or
             (code >= 0x0500 and code <= 0x050f))
         {
-            upper.* &= ~1;
+            upper.* &= ~@as(u32, 1);
             lower.* |= 1;
         } else if (code >= 0x04c1 and code <= 0x04ce) {
-            if (code & 1)
+            if (code & 1 == 1)
                 lower.* += 1
             else
                 upper.* -= 1;
@@ -621,7 +624,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
         if ((code >= 0x1e00 and code <= 0x1e95) or
             (code >= 0x1ea0 and code <= 0x1ef9))
         {
-            upper.* &= ~1;
+            upper.* &= ~@as(u32, 1);
             lower.* |= 1;
         } else if (code == 0x1e9b)
             upper.* = 0x1e60
@@ -645,6 +648,7 @@ fn ucsConvertCase(code: Types.keysym, lower: *Types.keysym, upper: *Types.keysym
             0x2126 => 0x03c9,
             0x212a => 0x006b,
             0x212b => 0x00e5,
+            else => unreachable,
         };
     }
 

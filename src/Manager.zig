@@ -80,7 +80,7 @@ pub fn deinit(self: *Manager) void {
     self.gpa.destroy(self);
 }
 
-/// Grabs the buttons the user has defined
+/// Grabs the mouse buttons the user has defined
 /// TODO: Create user configuration and make the manager aware of it
 fn grabUserButtons(self: Manager) !void {
     try input.grabButton(self.connection, .{
@@ -93,14 +93,21 @@ fn grabUserButtons(self: Manager) !void {
 }
 
 /// Grab the keys the user has defined
+/// TODO: Create user configuration and make the manager aware of it
 fn grabKeys(self: Manager) !void {
     // Ungrab all keys
-    try input.ungrabKey(self.connection, 0, self.root.handle, input.Modifiers.any.toInt());
+    try input.ungrabKey(self.connection, 0, self.root, input.Modifiers.any);
 
     // Get all keysyms
-    const table = try input.KeysymTable.getMapping(self.connection);
+    const table = try input.KeysymTable.init(self.connection);
     defer table.deinit(self.connection.gpa);
 
-    // find the user defined key
-    
+    const sym: u32 = 0x0071; // q
+    const keycode = table.keysymToKeycode(sym); // should be 24
+
+    try input.grabKey(self.connection, .{
+        .grab_window = self.root,
+        .modifiers = input.Modifiers.any,
+        .key_code = keycode,
+    });
 }
