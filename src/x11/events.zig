@@ -79,6 +79,10 @@ pub const Mask = packed struct {
     }
 };
 
+comptime {
+    @import("std").debug.assert(@sizeOf(Mask) == 4);
+}
+
 /// Event represents an X11 event received by the server.
 /// The type of the Event is bassed on the `EventType` and requires a switch
 /// to identify the correct type.

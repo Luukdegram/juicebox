@@ -33,6 +33,10 @@ pub const Modifiers = packed struct {
     }
 };
 
+comptime {
+    @import("std").debug.assert(@sizeOf(Modifiers) == 2);
+}
+
 /// Options to set when grabbing a button
 pub const GrabButtonOptions = struct {
     owner_events: bool = false,

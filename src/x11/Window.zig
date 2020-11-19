@@ -46,18 +46,18 @@ const WindowClass = enum(u16) {
 
 /// Creates a new `Window` on the given `screen` using the settings, set by `options`
 /// For now it creates a window with a black background
-pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindowOptions, values: []const x.ValueMask) !Window {
+pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindowOptions) !Window {
     const xid = try conn.genXid();
     const writer = conn.handle.writer();
 
     const mask: u32 = blk: {
         var tmp: u32 = 0;
-        for (values) |val| tmp |= val.mask.toInt();
+        for (options.values) |val| tmp |= val.mask.toInt();
         break :blk tmp;
     };
 
     const window_request = x.CreateWindowRequest{
-        .length = @sizeOf(x.CreateWindowRequest) / 4 + @intCast(u16, values.len),
+        .length = @sizeOf(x.CreateWindowRequest) / 4 + @intCast(u16, options.values.len),
         .wid = xid,
         .parent = screen.root,
         .width = options.width,
@@ -68,21 +68,21 @@ pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindo
     };
 
     try conn.send(window_request);
-    for (values) |val| try conn.send(val.value);
-
-    // map our window to make it visible
-    try map(conn, xid);
+    for (options.values) |val| try conn.send(val.value);
 
     const window = Window{ .handle = xid, .connection = conn };
 
-    defer if (options.title) |title| {
-        _ = async window.changeProperty(
+    if (options.title) |title| {
+        try window.changeProperty(
             .replace,
             x.Atoms.wm_name,
             x.Atoms.string,
             .{ .string = title },
         );
-    };
+    }
+
+    // map our window to make it visible
+    try window.map();
 
     return window;
 }
@@ -162,18 +162,15 @@ pub fn changeAttributes(self: Window, values: []const x.ValueMask) !void {
 pub fn configure(self: Window, mask: x.WindowConfigMask, config: x.WindowChanges) !void {
     try self.connection.send(
         x.ConfigureWindowRequest{
-            .length = @sizeOf(x.ChangeWindowAttributes) / 4 + x.maskLen(mask),
+            .length = @sizeOf(x.ConfigureWindowRequest) / 4 + x.maskLen(mask),
             .window = self.handle,
             .mask = mask.toInt(),
         },
     );
 
-    inline for (std.meta.fields(x.WindowConfigMask)) |field| {
-        if (field.field_type == bool and @field(mask, field.name)) {
-            try self.connection.send(@field(config, field.name));
-        }
-    }
-    //for (values) |val| try self.connection.send(val.value);
+    inline for (std.meta.fields(x.WindowConfigMask)) |field|
+        if (field.field_type == bool and @field(mask, field.name))
+            try self.connection.send(@as(u32, @field(config, field.name)));
 }
 
 /// Closes a window
@@ -187,8 +184,17 @@ pub fn createContext(self: Window, mask: u32, values: []u32) !x.Types.GContext {
 }
 
 /// Maps a window to the current display
-pub fn map(connection: *Connection, window: x.Types.Window) !void {
-    try connection.send(x.MapWindowRequest{ .window = window });
+pub fn map(self: Window) !void {
+    try self.connection.send(x.MapWindowRequest{ .window = self.handle });
+}
+
+/// Sets the input focus to the window
+pub fn focus(self: Window) !void {
+    try self.connection.send(x.SetInputFocusRequest{
+        .window = self.handle,
+        .time_stamp = 0,
+        .revert_to = 1,
+    });
 }
 
 fn xpad(n: usize) usize {

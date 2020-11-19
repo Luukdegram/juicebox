@@ -59,8 +59,8 @@ pub const default_config: Config = .{
         },
         .{
             .symbol = keys.XK_t,
-            .modifier = input.Modifiers.any,
-            .action = .{ .cmd = &[_][]const u8{ "rofi", "-show", "run" } },
+            .modifier = .{ .mod4 = true },
+            .action = .{ .cmd = &[_][]const u8{"dmenu_run"} },
         },
     },
 };

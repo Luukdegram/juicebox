@@ -26,17 +26,24 @@ root: Window,
 screen: Connection.Screen,
 /// The table of keysymbols which is used to convert to/from keycodes and keysyms
 keysym_table: input.KeysymTable,
+/// The window that is currently being focus
+focused: Window,
 
 /// The mask we use for our root window
 const root_event_mask = EventMask{
     .substructure_redirect = true,
     .substructure_notify = true,
-    .button_press = true,
     .structure_notify = true,
-    .pointer_motion = true,
+    //.button_press = true,
+    //.pointer_motion = true,
     .property_change = true,
-    .focus_change = true,
+    //.focus_change = true,
+    //.enter_window = true,
+};
+
+const window_event_mask = EventMask{
     .enter_window = true,
+    .focus_change = true,
 };
 
 /// Initializes a new Juicebox `Manager`. Connects with X11
@@ -56,6 +63,7 @@ pub fn init(gpa: *Allocator) !*Manager {
         .root = undefined,
         .screen = undefined,
         .keysym_table = undefined,
+        .focused = undefined,
     };
 
     // active screen as the first screen we find
@@ -67,7 +75,9 @@ pub fn init(gpa: *Allocator) !*Manager {
         .connection = conn,
     };
 
-    // setup the root window to listen to events
+    manager.focused = manager.root;
+
+    //setup the root window to listen to events
     try manager.root.changeAttributes(
         &[_]x.protocol.ValueMask{
             .{
@@ -77,7 +87,7 @@ pub fn init(gpa: *Allocator) !*Manager {
         },
     );
 
-    // Grabs all keys the user has defined
+    // // Grabs all keys the user has defined
     try manager.grabKeys();
 
     return manager;
@@ -91,33 +101,48 @@ pub fn deinit(self: *Manager) void {
     self.gpa.destroy(self);
 }
 
+/// Represents the type of response we have received
+const ReplyType = enum(u8) {
+    err,
+    reply,
+    _,
+};
+
 /// Runs the main event loop
 pub fn run(self: *Manager) !void {
     while (true) {
+        // all replies are 32 bit size
         var bytes: [32]u8 = undefined;
         try self.connection.reader().readNoEof(&bytes);
 
-        if (bytes[0] > 1 and bytes[0] < 35) {
-            const event = events.Event.fromBytes(bytes);
-
-            if (event != .motion_notify) {
-                log.debug("EVENT: {}", .{@tagName(std.meta.activeTag(event))});
-            }
-
-            switch (event) {
-                .button_press => |button| log.debug("Clicked button: {}", .{button.detail}),
-                .key_press => |key| try self.onKeyPress(key),
-                .configure_request => |conf| try self.onConfigure(conf),
-                .map_request => |map| try self.onMap(map),
-                else => continue,
-            }
-        } else if (bytes[0] == 0) {
-            // error occured
-            const err = errors.Error.fromBytes(bytes);
-            log.err("{} - seq: {}", .{ err.code, err.sequence });
-            log.debug("Error details: {}", .{err});
-        }
+        try switch (@intToEnum(ReplyType, bytes[0])) {
+            .err => self.handleError(bytes),
+            .reply => unreachable, // replies should be handled correctly
+            _ => self.handleEvent(bytes),
+        };
     }
+}
+
+/// Handles all events received from X11
+fn handleEvent(self: *Manager, buffer: [32]u8) !void {
+    const event = events.Event.fromBytes(buffer);
+
+    log.debug("EVENT: {}", .{@tagName(std.meta.activeTag(event))});
+
+    switch (event) {
+        .key_press => |key| try self.onKeyPress(key),
+        .configure_request => |conf| try self.onConfigure(conf),
+        .map_request => |map| try self.onMap(map),
+        else => {},
+    }
+}
+
+/// Prints the error details from X11
+/// TODO: Exit Juicebox as it's a developer error
+fn handleError(self: *Manager, buffer: [32]u8) !void {
+    const err = errors.Error.fromBytes(buffer);
+    log.err("ERROR: {s}", .{@tagName(err.code)});
+    log.debug("Error details: {}", .{err});
 }
 
 /// Handles when a user presses a user-defined key binding
@@ -153,13 +178,18 @@ fn onConfigure(self: *Manager, event: events.ConfigureRequest) !void {
     };
 
     try window.configure(mask, window_config);
-    log.debug("Configured window id: {d}", .{event.window});
 }
 
 /// Maps a new window
 fn onMap(self: *Manager, event: events.MapRequest) !void {
-    try Window.map(self.connection, event.window);
-    log.debug("Mapped window id: {d}", .{event.window});
+    const window = Window{ .connection = self.connection, .handle = event.window };
+    try window.map();
+    try window.changeAttributes(&[_]x.protocol.ValueMask{.{
+        .mask = .event_mask,
+        .value = window_event_mask.toInt(),
+    }});
+    try window.focus();
+    self.focused = window;
 }
 
 /// Grabs the mouse buttons the user has defined

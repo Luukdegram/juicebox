@@ -39,6 +39,11 @@ pub const WindowConfigMask = packed struct {
     }
 };
 
+// Ensure that our mask structs have the correct size
+comptime {
+    @import("std").debug.assert(@sizeOf(WindowConfigMask) == 2);
+}
+
 pub const WindowChanges = struct {
     x: u16 = 0,
     y: u16 = 0,
@@ -398,4 +403,12 @@ pub const KeyboardMappingReply = extern struct {
     sequence: u16,
     length: u32,
     pad: [24]u8,
+};
+
+pub const SetInputFocusRequest = extern struct {
+    major_opcode: u8 = 42,
+    revert_to: u8,
+    length: u16 = @sizeOf(SetInputFocusRequest) / 4,
+    window: Types.Window,
+    time_stamp: u32,
 };
