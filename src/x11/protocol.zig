@@ -1,5 +1,6 @@
 //! Contains all structs, constants and types that belong
-//! to the X11 protocol
+//! to the X11 protocol as well as helper structs/functions
+//! to ease the process of working with the X11 protocol
 
 /// All constant that belong to updating Window attributes
 pub const WindowAttributes = extern enum(u32) {

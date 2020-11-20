@@ -4,6 +4,7 @@ const log = std.log.scoped(.juicebox);
 const events = @import("x11").events;
 const errors = @import("x11").errors;
 
+// https://github.com/ziglang/zig/issues/938
 //pub const io_mode = .evented;
 
 pub fn main() anyerror!void {

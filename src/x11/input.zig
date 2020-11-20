@@ -5,6 +5,9 @@ const EventMask = @import("events.zig").Mask;
 usingnamespace @import("protocol.zig");
 usingnamespace @import("keys.zig");
 
+//! Contains the basic X11 input systems and conversions. Note that this not
+//! yet support the XInput2 protocol extension.
+
 pub const Modifiers = packed struct {
     /// Shift keys
     shift: bool = false,

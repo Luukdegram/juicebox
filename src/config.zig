@@ -3,6 +3,13 @@ const keys = x11.keys;
 const input = x11.input;
 const Keysym = x11.protocol.Types.Keysym;
 
+//! User defined configuration of Juicebox
+//! Currently this file requires to be changed to update the configuration.
+//! In the future, the user can pass a path to a config file during compilation
+//! that will overwrite this config. However, the goal remains to have the config
+//! available in the static data section and not allocate any memory for it.
+//! Runtime memory is more important than binary size for now.
+
 /// The action to perform when a keybinding has been triggered
 /// use `function` when a function has to be ran by the manager.
 /// Or use `cmd` when a shell command must be ran.

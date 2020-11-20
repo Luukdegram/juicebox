@@ -1,3 +1,5 @@
+//! Contains a list of all possible key symbols
+
 pub const XK_VoidSymbol = 0xffffff;
 pub const XK_BackSpace = 0xff08;
 pub const XK_Tab = 0xff09;

@@ -7,6 +7,9 @@ const fs = std.fs;
 
 const Connection = @This();
 
+//! Connection holds a socket connection to X11 and allows to write
+//! and read requests to/from X11. It also contains the authentication with the protocol
+
 /// Handle to the socket of the X connection
 handle: fs.File,
 /// Allocator used to allocate setup data

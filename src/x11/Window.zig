@@ -13,7 +13,8 @@ const Window = @This();
 
 /// Xid of the window, used to update settings etc.
 handle: x.Types.Window,
-/// non owning pointer to the connection that was used to create this window
+
+/// Non-owning pointer to the connection that was used to create this window
 connection: *const Connection,
 
 /// Options to create a new `Window`
