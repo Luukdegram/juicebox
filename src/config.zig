@@ -51,6 +51,8 @@ pub const Config = struct {
     border_color_unfocused: u32 = 0x575859,
     /// Border color when a window is focused. Ignored when `border_width` is null
     border_color_focused: u32 = 0x9fb9d6,
+    /// The amount of workspaces Juicebox should contain. Can hold a maximum of 16
+    workspaces: u4 = 10,
 };
 
 /// The default config when no configuration has been provided

@@ -138,7 +138,7 @@ pub fn changeProperty(
         .string => |string| self.connection.send(string),
     };
     // padding to end the data property
-    try self.connection.send(request.pad0);
+    try self.connection.send(request.pad0[0..xpad(data.len())]);
 }
 
 /// Changes the given attributs on the current `Window`
