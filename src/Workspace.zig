@@ -94,7 +94,7 @@ const Iterator = struct {
     /// Returns the next Window. Returns `null` if end of the iterator has been reached
     pub fn next(self: *Iterator) ?Window {
         if (index == self.slice.len) return null;
-
+        defer self.index += 1;
         return self.slice[self.index];
     }
 };
