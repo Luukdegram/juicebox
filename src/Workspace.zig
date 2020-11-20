@@ -8,6 +8,7 @@ const Workspace = @This();
 //! A workspace is a list of Windows being displayed on a monitor
 //! in a specific windowing mode. Multiple workspaces can exist
 
+/// Unmanaged Arraylist of type `Window`
 const WindowList = std.ArrayListUnmanaged(Window);
 
 /// Windowing mode (tiled, full screen)
@@ -47,23 +48,27 @@ pub fn deinit(self: *Workspace, gpa: *Allocator) void {
     self.* = undefined;
 }
 
-/// Checks if the `Window` exists in the `Workspace`. Returns `false` if it does not yet exist
-pub fn contains(self: Workspace, window: Window) bool {
-    for (self.windows) |w| if (w.handle == window.handle) return true;
+/// Checks if the `handle` exists in the `Workspace`. Returns `false` if it does not yet exist
+pub fn contains(self: Workspace, handle: x.protocol.Types.Window) bool {
+    for (self.items()) |w| if (w.handle == handle) return true;
+    return false;
 }
 
 /// Adds a window reference to the `Workspace`
 /// Asserts the `Window` does not yet exist in the `Workspace`
 pub fn add(self: *Workspace, gpa: *Allocator, window: Window) error{OutOfMemory}!void {
-    std.debug.assert(!self.contains(window));
-    try self.windows.addOne(gpa).* = window;
+    std.debug.assert(!self.contains(window.handle));
+    (try self.windows.addOne(gpa)).* = window;
 }
 
-/// Removes a `Window` from the `Workspace`.
-pub fn remove(self: *Workspace, handle: x.protocol.Types.Window) void {
+/// Removes a `Window` from the `Workspace`. Returns the Window upon deletion.
+/// User must assure the window exists
+pub fn remove(self: *Workspace, handle: x.protocol.Types.Window) ?Window {
     for (self.windows.items) |w, i| {
-        if (w.handle == handle) _ = self.windows.swapRemove(i);
+        if (w.handle == handle) return self.windows.swapRemove(i);
     }
+
+    return null;
 }
 
 /// Returns a slice of Windows

@@ -1,6 +1,7 @@
 const std = @import("std");
 const x = @import("x11");
 const config = @import("config.zig").default_config;
+const LayoutManager = @import("Layout.zig");
 const log = std.log.scoped(.juicebox_manager);
 const Connection = x.Connection;
 const Window = x.Window;
@@ -26,8 +27,8 @@ root: Window,
 screen: Connection.Screen,
 /// The table of keysymbols which is used to convert to/from keycodes and keysyms
 keysym_table: input.KeysymTable,
-/// The window that is currently being focus
-focused: Window,
+/// Layout manager to manage all the windows and workspaces
+layout_manager: LayoutManager,
 
 /// The mask we use for our root window
 const root_event_mask = EventMask{
@@ -41,11 +42,6 @@ const root_event_mask = EventMask{
     //.enter_window = true,
 };
 
-const window_event_mask = EventMask{
-    .enter_window = true,
-    .focus_change = true,
-};
-
 /// Initializes a new Juicebox `Manager`. Connects with X11
 /// and handle the root window creation
 pub fn init(gpa: *Allocator) !*Manager {
@@ -56,6 +52,8 @@ pub fn init(gpa: *Allocator) !*Manager {
     errdefer gpa.destroy(conn);
     conn.* = try Connection.init(gpa);
 
+    const screen = conn.screens[0];
+
     // create a Manager object and initialize the X11 connection
     manager.* = .{
         .gpa = gpa,
@@ -63,19 +61,20 @@ pub fn init(gpa: *Allocator) !*Manager {
         .root = undefined,
         .screen = undefined,
         .keysym_table = undefined,
-        .focused = undefined,
+        .layout_manager = LayoutManager.init(gpa, .{
+            .width = screen.width_pixel,
+            .height = screen.height_pixel,
+        }),
     };
 
     // active screen as the first screen we find
-    manager.screen = conn.screens[0];
+    manager.screen = screen;
 
     // Set the root to the root of the first screen
     manager.root = Window{
-        .handle = conn.screens[0].root,
+        .handle = screen.root,
         .connection = conn,
     };
-
-    manager.focused = manager.root;
 
     //setup the root window to listen to events
     try manager.root.changeAttributes(
@@ -131,8 +130,9 @@ fn handleEvent(self: *Manager, buffer: [32]u8) !void {
 
     switch (event) {
         .key_press => |key| try self.onKeyPress(key),
-        .configure_request => |conf| try self.onConfigure(conf),
         .map_request => |map| try self.onMap(map),
+        .configure_request => |conf| try self.onConfigure(conf),
+        .destroy_notify => |destroyable| try self.layout_manager.closeWindow(destroyable.window),
         else => {},
     }
 }
@@ -159,7 +159,16 @@ fn onKeyPress(self: *Manager, event: events.InputDeviceEvent) !void {
     }
 }
 
-/// Configures a new window
+/// Asks the `LayoutManager` to map a new window and handle the tiling
+fn onMap(self: *Manager, event: events.MapRequest) !void {
+    const window = Window{ .connection = self.connection, .handle = event.window };
+    try self.layout_manager.mapWindow(window);
+}
+
+/// Configures a new window to the requested configuration
+/// Handling request notifies speeds up the speed of window creation
+/// as X11 will wait for a reply before it sends a `MapRequest`
+/// TODO: Let the layout manager configure it
 fn onConfigure(self: *Manager, event: events.ConfigureRequest) !void {
     const window = Window{
         .handle = event.window,
@@ -178,18 +187,6 @@ fn onConfigure(self: *Manager, event: events.ConfigureRequest) !void {
     };
 
     try window.configure(mask, window_config);
-}
-
-/// Maps a new window
-fn onMap(self: *Manager, event: events.MapRequest) !void {
-    const window = Window{ .connection = self.connection, .handle = event.window };
-    try window.map();
-    try window.changeAttributes(&[_]x.protocol.ValueMask{.{
-        .mask = .event_mask,
-        .value = window_event_mask.toInt(),
-    }});
-    try window.focus();
-    self.focused = window;
 }
 
 /// Grabs the mouse buttons the user has defined
