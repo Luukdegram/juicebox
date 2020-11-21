@@ -169,9 +169,16 @@ pub fn configure(self: Window, mask: x.WindowConfigMask, config: x.WindowChanges
         },
     );
 
-    inline for (std.meta.fields(x.WindowConfigMask)) |field|
-        if (field.field_type == bool and @field(mask, field.name))
-            try self.connection.send(@as(u32, @field(config, field.name)));
+    inline for (std.meta.fields(x.WindowConfigMask)) |field| {
+        if (field.field_type == bool and @field(mask, field.name)) {
+            //@compileLog(@typeInfo(@TypeOf(@field(config, field.name))).Int);
+            if (@typeInfo(@TypeOf(@field(config, field.name))).Int.signedness == .signed) {
+                try self.connection.send(@as(i32, @field(config, field.name)));
+            } else {
+                try self.connection.send(@as(u32, @field(config, field.name)));
+            }
+        }
+    }
 }
 
 /// Closes a window

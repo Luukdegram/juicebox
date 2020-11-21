@@ -59,7 +59,7 @@ pub const Config = struct {
 /// This can either be manually changed in the source code,
 /// or by providing -Dconfig=<config_path>
 pub const default_config: Config = .{
-    .border_width = 10,
+    .border_width = 2,
     .bindings = &[_]KeyBind{
         .{
             .symbol = keys.XK_q,

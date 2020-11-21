@@ -170,17 +170,17 @@ fn remapWindows(self: *LayoutManager) !void {
     const width: u16 = @divFloor(self.size.width - (border_width * 4), 2);
 
     for (workspace.items()) |window, i| {
-        const x_pos = if (i == 0) 0 else width + border_width * 2;
+        const x_pos: i16 = if (i == 0) 0 else @intCast(i16, width + border_width * 2);
         var height: u16 = self.size.height - (border_width * 2);
-        var y_pos: u16 = 0;
+        var y_pos: i16 = 0;
 
         if (i > 0) {
             const right_windows: u16 = @intCast(u16, workspace.items().len - 1);
-            height = @divFloor(
-                height - @intCast(u16, (i - 1) * (border_width * 4)),
+            height = @divTrunc(
+                height - @intCast(u16, (right_windows - 1) * (border_width * 2)),
                 @intCast(u16, right_windows),
             );
-            y_pos += @intCast(u16, i - 1) * @intCast(u16, height + border_width) + if (i > 1) border_width else 0;
+            y_pos += @intCast(i16, i - 1) * @intCast(i16, height + (border_width * 2));
         }
 
         std.debug.print("Window: {d} - Width: {d} - Height: {d} - x: {d} - y: {d} \n", .{

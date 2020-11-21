@@ -46,8 +46,8 @@ comptime {
 }
 
 pub const WindowChanges = struct {
-    x: u16 = 0,
-    y: u16 = 0,
+    x: i16 = 0,
+    y: i16 = 0,
     width: u16 = 0,
     height: u16 = 0,
     border_width: u16 = 0,
