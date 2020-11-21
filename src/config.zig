@@ -46,11 +46,11 @@ pub const Config = struct {
     /// in floating mode
     window_height: u32 = 600,
     /// Border width for windows. Null by default, meaning no border effect
-    border_width: ?u32 = null,
+    border_width: ?u16 = null,
     /// Border color when a window is unfocused. Ignored when `border_width` is null
-    border_color_unfocused: u32 = 0x575859,
+    border_color_unfocused: u32 = 0x34bdeb,
     /// Border color when a window is focused. Ignored when `border_width` is null
-    border_color_focused: u32 = 0x9fb9d6,
+    border_color_focused: u32 = 0x014c82,
     /// The amount of workspaces Juicebox should contain. Can hold a maximum of 16
     workspaces: u4 = 10,
 };
@@ -59,7 +59,7 @@ pub const Config = struct {
 /// This can either be manually changed in the source code,
 /// or by providing -Dconfig=<config_path>
 pub const default_config: Config = .{
-    .border_width = 2,
+    .border_width = 10,
     .bindings = &[_]KeyBind{
         .{
             .symbol = keys.XK_q,

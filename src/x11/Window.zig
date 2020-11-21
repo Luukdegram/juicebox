@@ -190,7 +190,7 @@ pub fn map(self: Window) !void {
 }
 
 /// Sets the input focus to the window
-pub fn focus(self: Window) !void {
+pub fn inputFocus(self: Window) !void {
     try self.connection.send(x.SetInputFocusRequest{
         .window = self.handle,
         .time_stamp = 0,

@@ -5,6 +5,7 @@ const Workspace = @import("Workspace.zig");
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
 const events = x.events;
+const log = std.log.scoped(.juicebox_layout);
 
 const LayoutManager = @This();
 
@@ -72,35 +73,28 @@ fn find(self: *LayoutManager, handle: x.protocol.Types.Window) ?*Workspace {
     return null;
 }
 
-/// Maps a new window by setting its dimensions and then mapping it to the correct
+/// Maps a new window by mapping it to the correct
 /// workspace and screen to make it 'visible'.
 pub fn mapWindow(self: *LayoutManager, window: Window) !void {
-    //Maps requests are only done by newly created windows so add it to the workspace list
-    try self.active().add(self.gpa, window);
+    const workspace = self.active();
+    try workspace.add(self.gpa, window);
 
-    try window.configure(.{
-        .width = true,
-        .height = true,
-        .border_width = true,
-    }, .{
-        .width = self.size.width,
-        .height = self.size.height,
-        .border_width = config.border_width orelse 0,
-    });
+    try self.remapWindows();
 
+    // Listen to events
     try window.changeAttributes(&[_]x.protocol.ValueMask{.{
         .mask = .event_mask,
         .value = window_event_mask.toInt(),
     }});
 
-    // Set border colour optionally and set the `focused` property on the workspace
-    try self.focusWindow(self.active(), window);
-
     // Map it to the screen
     try window.map();
 
-    // finally, give the window input focus
-    try window.focus();
+    // Set border colour optionally and set the `focused` property on the workspace
+    // as well as giving the window input focus
+    try self.focusWindow(window);
+
+    log.debug("Mapped window {d} on workspace {d}", .{ window.handle, workspace.id });
 }
 
 /// When a destroy notify is triggered or when a user explicitly wants to close a window
@@ -113,16 +107,26 @@ pub fn closeWindow(self: *LayoutManager, handle: x.protocol.Types.Window) !void 
 
     // If the deleted window was focused, focus the first window on the workspace
     if (workspace.focused) |focused| {
-        if (focused.handle == deleted.handle and workspace.items().len > 0)
-            try self.focusWindow(workspace, workspace.items()[0]);
+        if (focused.handle == deleted.handle and workspace.items().len > 0) {
+            workspace.focused = null;
+            try self.focusWindow(workspace.items()[0]);
+        }
     }
 
-    //TODO trigger layout update
+    try self.remapWindows();
 }
 
 /// Focuses the window and sets the focused-border-colour if border_width is set on the user config
-pub fn focusWindow(self: LayoutManager, workspace: *Workspace, window: Window) !void {
+pub fn focusWindow(self: *LayoutManager, window: Window) !void {
+    const workspace = self.active();
+
+    // save old focused window in temp variable so we can remove border colour later
+    const old_focused = workspace.focused;
+
     workspace.focused = window;
+
+    // set input focus to the window
+    try window.inputFocus();
 
     // don't set any border colours if the `border_width` is null
     if (config.border_width == null) return;
@@ -131,4 +135,67 @@ pub fn focusWindow(self: LayoutManager, workspace: *Workspace, window: Window) !
         .mask = .border_pixel,
         .value = config.border_color_focused,
     }});
+
+    if (old_focused) |old| {
+        try old.changeAttributes(&[_]x.protocol.ValueMask{.{
+            .mask = .border_pixel,
+            .value = config.border_color_unfocused,
+        }});
+    }
+}
+
+/// Restacks all the windows that are currently mapped on the screen
+fn remapWindows(self: *LayoutManager) !void {
+    // if only 1 window, make it full screen (with respect to borders)
+    const workspace = self.active();
+    const mask = x.protocol.WindowConfigMask{
+        .x = true,
+        .y = true,
+        .width = true,
+        .height = true,
+        .border_width = true,
+    };
+
+    const border_width = config.border_width orelse 0;
+
+    if (workspace.items().len == 1) {
+        try workspace.items()[0].configure(mask, .{
+            .width = self.size.width - (border_width * 2),
+            .height = self.size.height - (border_width * 2),
+            .border_width = config.border_width orelse 0,
+        });
+        return;
+    }
+
+    const width: u16 = @divFloor(self.size.width - (border_width * 4), 2);
+
+    for (workspace.items()) |window, i| {
+        const x_pos = if (i == 0) 0 else width + border_width * 2;
+        var height: u16 = self.size.height - (border_width * 2);
+        var y_pos: u16 = 0;
+
+        if (i > 0) {
+            const right_windows: u16 = @intCast(u16, workspace.items().len - 1);
+            height = @divFloor(
+                height - @intCast(u16, (i - 1) * (border_width * 4)),
+                @intCast(u16, right_windows),
+            );
+            y_pos += @intCast(u16, i - 1) * @intCast(u16, height + border_width) + if (i > 1) border_width else 0;
+        }
+
+        std.debug.print("Window: {d} - Width: {d} - Height: {d} - x: {d} - y: {d} \n", .{
+            window.handle,
+            width,
+            height,
+            x_pos,
+            y_pos,
+        });
+        try window.configure(mask, .{
+            .width = width,
+            .height = height,
+            .x = x_pos,
+            .y = y_pos,
+            .border_width = border_width,
+        });
+    }
 }

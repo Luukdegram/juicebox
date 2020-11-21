@@ -133,6 +133,7 @@ fn handleEvent(self: *Manager, buffer: [32]u8) !void {
         .map_request => |map| try self.onMap(map),
         .configure_request => |conf| try self.onConfigure(conf),
         .destroy_notify => |destroyable| try self.layout_manager.closeWindow(destroyable.window),
+        .enter_notify => |entry| try self.onFocus(entry),
         else => {},
     }
 }
@@ -168,7 +169,6 @@ fn onMap(self: *Manager, event: events.MapRequest) !void {
 /// Configures a new window to the requested configuration
 /// Handling request notifies speeds up the speed of window creation
 /// as X11 will wait for a reply before it sends a `MapRequest`
-/// TODO: Let the layout manager configure it
 fn onConfigure(self: *Manager, event: events.ConfigureRequest) !void {
     const window = Window{
         .handle = event.window,
@@ -187,6 +187,16 @@ fn onConfigure(self: *Manager, event: events.ConfigureRequest) !void {
     };
 
     try window.configure(mask, window_config);
+}
+
+/// Checks to see if the event wasn't done on the root idx.
+/// If not, focus the window by telling the layout manager to handle it.
+fn onFocus(self: *Manager, event: events.PointerWindowEvent) !void {
+    if (event.event == self.root.handle) return;
+    try self.layout_manager.focusWindow(.{
+        .handle = event.event,
+        .connection = self.connection,
+    });
 }
 
 /// Grabs the mouse buttons the user has defined
