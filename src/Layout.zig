@@ -144,6 +144,20 @@ pub fn focusWindow(self: *LayoutManager, window: Window) !void {
     }
 }
 
+/// Switches the another workspace at index `idx`
+pub fn switchTo(self: *LayoutManager, idx: usize) !void {
+    if (idx >= self.workspaces.len) return error.OutOfBounds;
+
+    // unmap all current windows
+    for (self.active().items()) |window| try window.unMap();
+
+    self.current = idx;
+    std.debug.assert(self.active().id == idx);
+
+    // map all windows on the new active workspace
+    for (self.active().items()) |window| try window.map();
+}
+
 /// Restacks all the windows that are currently mapped on the screen
 fn remapWindows(self: *LayoutManager) !void {
     // if only 1 window, make it full screen (with respect to borders)

@@ -196,6 +196,11 @@ pub fn map(self: Window) !void {
     try self.connection.send(x.MapWindowRequest{ .window = self.handle });
 }
 
+/// Unmaps the window and therefore hides it
+pub fn unMap(self: Window) !void {
+    try self.connection.send(x.MapWindowRequest{ .window = self.handle, .major_opcode = 10 });
+}
+
 /// Sets the input focus to the window
 pub fn inputFocus(self: Window) !void {
     try self.connection.send(x.SetInputFocusRequest{

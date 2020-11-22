@@ -77,7 +77,52 @@ pub const default_config: Config = .{
         .{
             .symbol = keys.XK_1,
             .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 11) } },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 0) } },
+        },
+        .{
+            .symbol = keys.XK_2,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 1) } },
+        },
+        .{
+            .symbol = keys.XK_3,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 2) } },
+        },
+        .{
+            .symbol = keys.XK_4,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 3) } },
+        },
+        .{
+            .symbol = keys.XK_5,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 4) } },
+        },
+        .{
+            .symbol = keys.XK_6,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 5) } },
+        },
+        .{
+            .symbol = keys.XK_7,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 6) } },
+        },
+        .{
+            .symbol = keys.XK_8,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 7) } },
+        },
+        .{
+            .symbol = keys.XK_9,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 8) } },
+        },
+        .{
+            .symbol = keys.XK_0,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 9) } },
         },
     },
 };
