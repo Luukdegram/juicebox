@@ -1,4 +1,5 @@
 const x11 = @import("x11");
+const actions = @import("actions.zig");
 const keys = x11.keys;
 const input = x11.input;
 const Keysym = x11.protocol.Types.Keysym;
@@ -14,7 +15,9 @@ const Keysym = x11.protocol.Types.Keysym;
 /// use `function` when a function has to be ran by the manager.
 /// Or use `cmd` when a shell command must be ran.
 pub const Action = union(ActionType) {
-    function: []const u8,
+    /// The function to call on key press and the argument
+    function: struct { action: actions.Action, arg: anytype },
+    /// The shell command to execute
     cmd: []const []const u8,
 
     pub const ActionType = enum { function, cmd };
@@ -59,17 +62,22 @@ pub const Config = struct {
 /// This can either be manually changed in the source code,
 /// or by providing -Dconfig=<config_path>
 pub const default_config: Config = .{
-    .border_width = 2,
+    .border_width = 4,
     .bindings = &[_]KeyBind{
         .{
             .symbol = keys.XK_q,
             .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = "close" },
+            .action = .{ .function = .{ .action = actions.closeWindow, .arg = null } },
         },
         .{
             .symbol = keys.XK_t,
             .modifier = .{ .mod4 = true },
             .action = .{ .cmd = &[_][]const u8{"dmenu_run"} },
+        },
+        .{
+            .symbol = keys.XK_1,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 11) } },
         },
     },
 };

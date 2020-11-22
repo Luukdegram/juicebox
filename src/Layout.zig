@@ -59,7 +59,7 @@ pub fn deinit(self: *LayoutManager) void {
 }
 
 /// Returns the active `Workspace`
-fn active(self: *LayoutManager) *Workspace {
+pub fn active(self: *LayoutManager) *Workspace {
     return &self.workspaces[self.current];
 }
 

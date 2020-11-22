@@ -148,15 +148,16 @@ fn handleError(self: *Manager, buffer: [32]u8) !void {
 
 /// Handles when a user presses a user-defined key binding
 fn onKeyPress(self: *Manager, event: events.InputDeviceEvent) !void {
-    for (config.bindings) |binding| {
-        if (binding.symbol != self.keysym_table.keycodeToKeysym(event.detail)) continue;
+    inline for (config.bindings) |binding| {
+        if (binding.symbol == self.keysym_table.keycodeToKeysym(event.detail)) {
 
-        // found a key so execute its command
-        switch (binding.action) {
-            .cmd => |cmd| try runCmd(self.gpa, cmd),
-            .function => |func| {},
+            // found a key so execute its command
+            switch (binding.action) {
+                .cmd => |cmd| try runCmd(self.gpa, cmd),
+                .function => |func| try func.action(self, func.arg),
+            }
+            return;
         }
-        return;
     }
 }
 
@@ -219,7 +220,7 @@ fn grabKeys(self: *Manager) !void {
     // Get all keysyms
     self.keysym_table = try input.KeysymTable.init(self.connection);
 
-    for (config.bindings) |binding| {
+    inline for (config.bindings) |binding| {
         try input.grabKey(
             self.connection,
             .{
