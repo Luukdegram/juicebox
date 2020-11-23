@@ -86,6 +86,16 @@ pub fn get(self: Workspace, handle: x.protocol.Types.Window) ?Window {
     return null;
 }
 
+/// Returns the previous window in the list for the given `window`
+pub fn prev(self: Workspace, window: Window) ?Window {
+    for (self.items()) |cur, i| {
+        if (cur.handle == window.handle and i > 0)
+            return self.items()[i - 1];
+    }
+
+    return null;
+}
+
 /// Iterator over Windows
 const Iterator = struct {
     index: usize = 0,

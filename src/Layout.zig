@@ -54,7 +54,7 @@ pub fn init(gpa: *Allocator, size: Size) LayoutManager {
 
 /// Frees the resources of the `LayoutManager`
 pub fn deinit(self: *LayoutManager) void {
-    for (self.workspaces) |ws| ws.deinit(self.gpa);
+    for (self.workspaces) |*ws| ws.deinit(self.gpa);
     self.* = undefined;
 }
 
@@ -79,7 +79,7 @@ pub fn mapWindow(self: *LayoutManager, window: Window) !void {
     const workspace = self.active();
     try workspace.add(self.gpa, window);
 
-    try self.remapWindows();
+    try self.remapWindows(workspace);
 
     // Listen to events
     try window.changeAttributes(&[_]x.protocol.ValueMask{.{
@@ -107,13 +107,13 @@ pub fn closeWindow(self: *LayoutManager, handle: x.protocol.Types.Window) !void 
 
     // If the deleted window was focused, focus the first window on the workspace
     if (workspace.focused) |focused| {
-        if (focused.handle == deleted.handle and workspace.items().len > 0) {
-            workspace.focused = null;
-            try self.focusWindow(workspace.items()[0]);
+        workspace.focused = null;
+        if (focused.handle == deleted.handle and workspace.prev(focused) != null) {
+            try self.focusWindow(workspace.prev(focused).?);
         }
     }
 
-    try self.remapWindows();
+    try self.remapWindows(workspace);
 }
 
 /// Focuses the window and sets the focused-border-colour if border_width is set on the user config
@@ -156,12 +156,44 @@ pub fn switchTo(self: *LayoutManager, idx: usize) !void {
 
     // map all windows on the new active workspace
     for (self.active().items()) |window| try window.map();
+
+    // make sure to give input focus to our focused window
+    if (self.active().focused) |focused| try self.focusWindow(focused);
+
+    log.debug("Switch to workspace {d}", .{idx});
+}
+
+/// Moves a `Window` `window` to workspace `idx`
+pub fn moveWindow(self: *LayoutManager, window: Window, idx: usize) !void {
+    if (idx >= self.workspaces.len) return error.OutOfBounds;
+
+    // first focus the previous window
+    if (self.active().prev(window)) |prev|
+        try self.focusWindow(prev)
+    else
+        self.active().focused = null;
+
+    // Them remove it from the current workspace
+    _ = self.active().remove(window.handle);
+    // and unmap it too
+    try window.unMap();
+
+    // Add it to the new workspace
+    try self.workspaces[idx].add(self.gpa, window);
+    // give it focus
+    self.workspaces[idx].focused = window;
+
+    // Make sure the layout is consistent:
+    try self.remapWindows(&self.workspaces[idx]);
+    // as well as the current workspace
+    try self.remapWindows(self.active());
+
+    log.debug("Moved window {d} to workspace {d}", .{ window.handle, idx });
 }
 
 /// Restacks all the windows that are currently mapped on the screen
-fn remapWindows(self: *LayoutManager) !void {
+fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
     // if only 1 window, make it full screen (with respect to borders)
-    const workspace = self.active();
     const mask = x.protocol.WindowConfigMask{
         .x = true,
         .y = true,
@@ -197,13 +229,6 @@ fn remapWindows(self: *LayoutManager) !void {
             y_pos += @intCast(i16, i - 1) * @intCast(i16, height + (border_width * 2));
         }
 
-        std.debug.print("Window: {d} - Width: {d} - Height: {d} - x: {d} - y: {d} \n", .{
-            window.handle,
-            width,
-            height,
-            x_pos,
-            y_pos,
-        });
         try window.configure(mask, .{
             .width = width,
             .height = height,

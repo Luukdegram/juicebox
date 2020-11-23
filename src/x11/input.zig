@@ -25,8 +25,18 @@ pub const Modifiers = packed struct {
     mod4: bool = false,
     /// ISO_Level3_Shift and Mode Switch key
     mod5: bool = false,
+    /// Mouse button 1
+    but1: bool = false,
+    /// Mouse button 2
+    but2: bool = false,
+    /// Mouse button 3
+    but3: bool = false,
+    /// Mouse button 4
+    but4: bool = false,
+    /// Mouse button 5
+    but5: bool = false,
 
-    padding: u7 = 0,
+    padding: u2 = 0,
     any_bit: bool = false,
 
     pub const any: @This() = .{ .any_bit = true };

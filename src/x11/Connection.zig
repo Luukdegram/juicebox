@@ -175,7 +175,7 @@ pub fn recv(self: *Connection, comptime T: type) !T {
 }
 
 /// Disconnects from X and frees all memory
-pub fn disconnect(self: *Connection) void {
+pub fn deinit(self: *Connection) void {
     self.gpa.free(self.formats);
     for (self.screens) |screen| {
         for (screen.depths) |depth| self.gpa.free(depth.visual_types);

@@ -28,22 +28,18 @@ screen: Connection.Screen,
 /// The table of keysymbols which is used to convert to/from keycodes and keysyms
 keysym_table: input.KeysymTable,
 /// Layout manager to manage all the windows and workspaces
-layout_manager: LayoutManager,
+layout_manager: *LayoutManager,
 
 /// The mask we use for our root window
 const root_event_mask = EventMask{
     .substructure_redirect = true,
     .substructure_notify = true,
     .structure_notify = true,
-    //.button_press = true,
-    //.pointer_motion = true,
     .property_change = true,
-    //.focus_change = true,
-    //.enter_window = true,
 };
 
 /// Initializes a new Juicebox `Manager`. Connects with X11
-/// and handle the root window creation
+/// and handle the root window setup
 pub fn init(gpa: *Allocator) !*Manager {
     const manager = try gpa.create(Manager);
     errdefer gpa.destroy(manager);
@@ -54,6 +50,13 @@ pub fn init(gpa: *Allocator) !*Manager {
 
     const screen = conn.screens[0];
 
+    const lm = try gpa.create(LayoutManager);
+    lm.* = LayoutManager.init(gpa, .{
+        .width = screen.width_pixel,
+        .height = screen.height_pixel,
+    });
+    errdefer gpa.destroy(lm);
+
     // create a Manager object and initialize the X11 connection
     manager.* = .{
         .gpa = gpa,
@@ -61,10 +64,7 @@ pub fn init(gpa: *Allocator) !*Manager {
         .root = undefined,
         .screen = undefined,
         .keysym_table = undefined,
-        .layout_manager = LayoutManager.init(gpa, .{
-            .width = screen.width_pixel,
-            .height = screen.height_pixel,
-        }),
+        .layout_manager = lm,
     };
 
     // active screen as the first screen we find
@@ -94,9 +94,11 @@ pub fn init(gpa: *Allocator) !*Manager {
 
 /// Closes the connection with X11 and frees all memory
 pub fn deinit(self: *Manager) void {
-    self.connection.disconnect();
+    self.connection.deinit();
     self.keysym_table.deinit(self.gpa);
+    self.layout_manager.deinit();
     self.gpa.destroy(self.connection);
+    self.gpa.destroy(self.layout_manager);
     self.gpa.destroy(self);
 }
 
@@ -149,14 +151,15 @@ fn handleError(self: *Manager, buffer: [32]u8) !void {
 /// Handles when a user presses a user-defined key binding
 fn onKeyPress(self: *Manager, event: events.InputDeviceEvent) !void {
     inline for (config.bindings) |binding| {
-        if (binding.symbol == self.keysym_table.keycodeToKeysym(event.detail)) {
+        if (binding.symbol == self.keysym_table.keycodeToKeysym(event.detail) and
+            binding.modifier.toInt() == event.state)
+        {
 
             // found a key so execute its command
             switch (binding.action) {
-                .cmd => |cmd| try runCmd(self.gpa, cmd),
-                .function => |func| try func.action(self, func.arg),
+                .cmd => |cmd| return runCmd(self.gpa, cmd),
+                .function => |func| return func.action(self, func.arg),
             }
-            return;
         }
     }
 }

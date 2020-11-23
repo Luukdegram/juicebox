@@ -62,7 +62,10 @@ pub const Config = struct {
 /// This can either be manually changed in the source code,
 /// or by providing -Dconfig=<config_path>
 pub const default_config: Config = .{
+    // enable borders and set its width
     .border_width = 4,
+
+    // define keybindings and their actions
     .bindings = &[_]KeyBind{
         .{
             .symbol = keys.XK_q,
@@ -123,6 +126,56 @@ pub const default_config: Config = .{
             .symbol = keys.XK_0,
             .modifier = .{ .mod4 = true },
             .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 9) } },
+        },
+        .{
+            .symbol = keys.XK_1,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 0 } },
+        },
+        .{
+            .symbol = keys.XK_2,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 1 } },
+        },
+        .{
+            .symbol = keys.XK_3,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 2 } },
+        },
+        .{
+            .symbol = keys.XK_4,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 3 } },
+        },
+        .{
+            .symbol = keys.XK_5,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 4 } },
+        },
+        .{
+            .symbol = keys.XK_6,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 5 } },
+        },
+        .{
+            .symbol = keys.XK_7,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 6 } },
+        },
+        .{
+            .symbol = keys.XK_8,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 7 } },
+        },
+        .{
+            .symbol = keys.XK_9,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 8 } },
+        },
+        .{
+            .symbol = keys.XK_0,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 9 } },
         },
     },
 };
