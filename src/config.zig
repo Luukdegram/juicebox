@@ -56,6 +56,16 @@ pub const Config = struct {
     border_color_focused: u32 = 0x014c82,
     /// The amount of workspaces Juicebox should contain. Can hold a maximum of 16
     workspaces: u4 = 10,
+    /// Gap sizes between windows. No gaps if null (default)
+    gaps: ?GapOptions = null,
+};
+
+/// Allows the user to set gap sizes between windows
+pub const GapOptions = struct {
+    left: u16 = 0,
+    right: u16 = 0,
+    top: u16 = 0,
+    bottom: u16 = 0,
 };
 
 /// The default config when no configuration has been provided
@@ -64,6 +74,9 @@ pub const Config = struct {
 pub const default_config: Config = .{
     // enable borders and set its width
     .border_width = 4,
+
+    // enable gap sizes
+    .gaps = .{ .left = 4, .right = 4, .top = 4, .bottom = 4 },
 
     // define keybindings and their actions
     .bindings = &[_]KeyBind{

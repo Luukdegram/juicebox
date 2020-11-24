@@ -114,6 +114,8 @@ pub fn closeWindow(self: *LayoutManager, handle: x.protocol.Types.Window) !void 
     }
 
     try self.remapWindows(workspace);
+
+    log.debug("Closed window {d}", .{handle});
 }
 
 /// Focuses the window and sets the focused-border-colour if border_width is set on the user config
@@ -142,6 +144,8 @@ pub fn focusWindow(self: *LayoutManager, window: Window) !void {
             .value = config.border_color_unfocused,
         }});
     }
+
+    log.debug("Set focus to window {d}", .{window.handle});
 }
 
 /// Switches the another workspace at index `idx`
@@ -202,7 +206,10 @@ fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
         .border_width = true,
     };
 
+    // get configured border sizes, orelse 0
     const border_width = config.border_width orelse 0;
+    // get configured gaps, orelse defaults (all 0)
+    const gaps = config.gaps orelse @import("config").GapOptions{};
 
     if (workspace.items().len == 1) {
         try workspace.items()[0].configure(mask, .{
@@ -213,20 +220,30 @@ fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
         return;
     }
 
-    const width: u16 = @divFloor(self.size.width - (border_width * 4), 2);
+    const gap_width = (gaps.left + gaps.right) * 2;
+    const gap_height = gaps.top + gaps.bottom;
+    const width: u16 = @divFloor(self.size.width - gap_width - (border_width * 4), 2);
 
     for (workspace.items()) |window, i| {
-        const x_pos: i16 = if (i == 0) 0 else @intCast(i16, width + border_width * 2);
-        var height: u16 = self.size.height - (border_width * 2);
-        var y_pos: i16 = 0;
+        // set x position (left is 0)
+        const x_pos: i16 = if (i == 0)
+            gaps.left
+        else
+            @intCast(i16, width + (gaps.left + gaps.right + gaps.left) + (border_width * 2));
+
+        // calculate the height per full size window
+        var height: u16 = self.size.height - gaps.top - gaps.bottom - (border_width * 2);
+
+        // base y position (top is 0)
+        var y_pos: i16 = gaps.top;
 
         if (i > 0) {
             const right_windows: u16 = @intCast(u16, workspace.items().len - 1);
             height = @divTrunc(
-                height - @intCast(u16, (right_windows - 1) * (border_width * 2)),
+                height - @intCast(u16, (right_windows - 1) * ((border_width * 2) + (gap_height))),
                 @intCast(u16, right_windows),
             );
-            y_pos += @intCast(i16, i - 1) * @intCast(i16, height + (border_width * 2));
+            y_pos += @intCast(i16, i - 1) * @intCast(i16, height + (border_width * 2) + gap_height);
         }
 
         try window.configure(mask, .{
