@@ -185,6 +185,22 @@ pub fn deinit(self: *Connection) void {
     self.handle.close();
 }
 
+/// Gets a named Atom from the X11 server
+pub fn getAtom(self: *Connection, name: []const u8) !protocol.Types.Atom {
+    const padding = &[_]u8{0} ** 3; //max size of xpad = 3
+    const request = protocol.AtomRequest{
+        .length = @intCast(u16, 2 + (name.len + xpad(name.len)) / 4),
+        .name_length = @intCast(u16, name.len),
+    };
+
+    try self.send(request);
+    try self.send(name);
+    try self.send(padding[0..xpad(name.len)]);
+
+    const reply = try self.recv(protocol.AtomReply);
+    return reply.atom;
+}
+
 /// Checks if the X11 server supports the given extension or: not
 fn supportsExtension(self: *Connection, ext_name: []const u8) !bool {
     const request = protocol.QueryExtensionRequest{

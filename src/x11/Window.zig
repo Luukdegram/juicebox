@@ -111,7 +111,7 @@ const Property = union(enum) {
 pub fn changeProperty(
     self: Window,
     mode: PropertyMode,
-    property: x.Atoms,
+    property: x.Types.Atom,
     prop_type: x.Atoms,
     data: Property,
 ) !void {
@@ -127,7 +127,7 @@ pub fn changeProperty(
         .mode = @enumToInt(mode),
         .length = total_length,
         .window = self.handle,
-        .property = property.toInt(),
+        .property = property,
         .prop_type = prop_type.toInt(),
         .data_len = data.len(),
     };

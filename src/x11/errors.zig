@@ -55,8 +55,6 @@ pub const Error = extern struct {
         const response_type = bytes[0];
         std.debug.assert(response_type == 0);
 
-        const error_type = @intToEnum(ErrorType, bytes[1]);
-
         return std.mem.bytesToValue(Error, &bytes);
     }
 };

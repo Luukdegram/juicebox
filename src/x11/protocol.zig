@@ -413,3 +413,21 @@ pub const SetInputFocusRequest = extern struct {
     window: Types.Window,
     time_stamp: u32,
 };
+
+pub const AtomRequest = extern struct {
+    major_opcode: u8 = 16,
+    only_if_exists: u8 = 0,
+    length: u16,
+    name_length: u16,
+    pad: u16 = 0,
+};
+
+pub const AtomReply = extern struct {
+    reply: u8,
+    pad: u8,
+    sequence: u16,
+    length: u32,
+    /// 0 = None
+    atom: u32,
+    pad1: [20]u8,
+};
