@@ -67,7 +67,7 @@ pub const GapOptions = struct {
 /// or by providing -Dconfig=<config_path>
 pub const default_config: Config = .{
     // enable borders and set its width
-    .border_width = 4,
+    .border_width = 2,
 
     // enable gap sizes
     .gaps = .{ .left = 4, .right = 4, .top = 4, .bottom = 4 },
@@ -80,7 +80,7 @@ pub const default_config: Config = .{
             .action = .{ .function = .{ .action = actions.closeWindow, .arg = {} } },
         },
         .{
-            .symbol = keys.XK_t,
+            .symbol = keys.XK_d,
             .modifier = .{ .mod4 = true },
             .action = .{ .cmd = &[_][]const u8{"dmenu_run"} },
         },
@@ -88,6 +88,11 @@ pub const default_config: Config = .{
             .symbol = keys.XK_f,
             .modifier = .{ .mod4 = true },
             .action = .{ .function = .{ .action = actions.toggleFullscreen, .arg = {} } },
+        },
+        .{
+            .symbol = keys.XK_Return,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .cmd = &[_][]const u8{"alacritty"} },
         },
         .{
             .symbol = keys.XK_1,
