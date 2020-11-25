@@ -195,6 +195,23 @@ pub fn moveWindow(self: *LayoutManager, window: Window, idx: usize) !void {
     log.debug("Moved window {d} to workspace {d}", .{ window.handle, idx });
 }
 
+/// Toggles between tiled and fullscreen mode for the active workspace
+pub fn toggleFullscreen(self: *LayoutManager) !void {
+    const current = self.active();
+    if (current.mode == .full_screen) {
+        try self.remapWindows(current);
+        current.mode = .tiled;
+    } else {
+        if (current.focused) |window| {
+            try window.configure(
+                .{ .width = true, .height = true, .x = true, .y = true, .border_width = true, .stack_mode = true },
+                .{ .width = self.size.width, .height = self.size.height, .x = 0, .y = 0, .border_width = 0, .stack_mode = 0 },
+            );
+        }
+        current.mode = .full_screen;
+    }
+}
+
 /// Restacks all the windows that are currently mapped on the screen
 fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
     // if only 1 window, make it full screen (with respect to borders)

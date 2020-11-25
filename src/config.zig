@@ -42,12 +42,6 @@ pub const Keybindings = []const KeyBind;
 pub const Config = struct {
     /// Lost of keybindings
     bindings: Keybindings,
-    /// The default window width a newly created window will have
-    /// in floating mode
-    window_width: u32 = 800,
-    /// The default window height a newly created window will have
-    /// in floating mode
-    window_height: u32 = 600,
     /// Border width for windows. Null by default, meaning no border effect
     border_width: ?u16 = null,
     /// Border color when a window is unfocused. Ignored when `border_width` is null
@@ -83,12 +77,17 @@ pub const default_config: Config = .{
         .{
             .symbol = keys.XK_q,
             .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.closeWindow, .arg = null } },
+            .action = .{ .function = .{ .action = actions.closeWindow, .arg = {} } },
         },
         .{
             .symbol = keys.XK_t,
             .modifier = .{ .mod4 = true },
             .action = .{ .cmd = &[_][]const u8{"dmenu_run"} },
+        },
+        .{
+            .symbol = keys.XK_f,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.toggleFullscreen, .arg = {} } },
         },
         .{
             .symbol = keys.XK_1,

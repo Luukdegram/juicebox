@@ -49,3 +49,9 @@ pub fn moveWindow(manager: *Manager, arg: anytype) !void {
     // if a window is focused, move it to the given workspace
     if (layout.active().focused) |focused_window| try layout.moveWindow(focused_window, arg);
 }
+
+/// Toggles between tiled and fullscreen mode for the current workspace
+/// the `arg` argument is ignored
+pub fn toggleFullscreen(manager: *Manager, arg: anytype) !void {
+    try manager.layout_manager.toggleFullscreen();
+}

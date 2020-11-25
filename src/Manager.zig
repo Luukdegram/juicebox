@@ -86,7 +86,7 @@ pub fn init(gpa: *Allocator) !*Manager {
         },
     );
 
-    // // Grabs all keys the user has defined
+    // Grabs all keys the user has defined
     try manager.grabKeys();
 
     return manager;
@@ -116,10 +116,11 @@ pub fn run(self: *Manager) !void {
         var bytes: [32]u8 = undefined;
         try self.connection.reader().readNoEof(&bytes);
 
-        try switch (@intToEnum(ReplyType, bytes[0])) {
-            .err => self.handleError(bytes),
-            .reply => unreachable, // replies should be handled correctly
-            _ => self.handleEvent(bytes),
+        try switch (bytes[0]) {
+            0 => self.handleError(bytes),
+            1 => unreachable, // replies should be handled at callsite
+            2...34 => self.handleEvent(bytes),
+            else => {}, // unhandled extensions
         };
     }
 }
