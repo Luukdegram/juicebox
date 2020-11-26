@@ -94,6 +94,12 @@ pub fn getIdx(self: Workspace, window: Window) ?usize {
     return null;
 }
 
+/// Returns a `Window` for given index `idx`
+/// User must ensure to provide a valid index
+pub fn getByIdx(self: Workspace, idx: usize) Window {
+    return self.windows.items[idx];
+}
+
 /// Returns the previous window in the list for the given `window`
 pub fn prev(self: Workspace, window: Window) ?Window {
     for (self.items()) |cur, i| {

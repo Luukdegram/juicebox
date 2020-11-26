@@ -214,5 +214,25 @@ pub const default_config: Config = .{
             .modifier = .{ .mod4 = true, .shift = true },
             .action = .{ .function = .{ .action = actions.swapWindow, .arg = .down } },
         },
+        .{
+            .symbol = keys.XK_Right,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .right } },
+        },
+        .{
+            .symbol = keys.XK_Left,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .left } },
+        },
+        .{
+            .symbol = keys.XK_Up,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .up } },
+        },
+        .{
+            .symbol = keys.XK_Down,
+            .modifier = .{ .mod4 = true },
+            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .down } },
+        },
     },
 };

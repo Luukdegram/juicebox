@@ -245,6 +245,37 @@ pub fn swapWindow(self: *LayoutManager, direction: enum { left, right, up, down 
     try self.remapWindows(current);
 }
 
+/// Swaps the focus between windows according to given `direction`.
+/// I.e. swap the focus from the left window to the right top window.
+pub fn swapFocus(self: *LayoutManager, direction: enum { left, right, up, down }) !void {
+    const current = self.active();
+    const focused = current.focused orelse return;
+    const idx = current.getIdx(focused) orelse return;
+
+    switch (direction) {
+        .left => {
+            // make sure the window is not left hand side
+            if (idx == 0) return;
+            try self.focusWindow(current.getByIdx(0));
+        },
+        .right => {
+            // make sure the window is not on right hand side
+            if (idx > 0) return;
+            try self.focusWindow(current.getByIdx(1));
+        },
+        .up => {
+            // make sure window is on right hand side and not top
+            if (idx < 2) return;
+            try self.focusWindow(current.getByIdx(idx - 1));
+        },
+        .down => {
+            // make sure window is on right hand side and not bottom
+            if (idx == 0 or idx == current.items().len - 1) return;
+            try self.focusWindow(current.getByIdx(idx + 1));
+        },
+    }
+}
+
 /// Restacks all the windows that are currently mapped on the screen
 fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
     // if only 1 window, make it full screen (with respect to borders)

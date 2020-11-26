@@ -68,3 +68,16 @@ pub fn swapWindow(manager: *Manager, arg: anytype) !void {
         else => return error.InvalidEnum,
     }
 }
+
+/// Swaps the focus between windows according to given `arg`.
+/// For example, when providing `.right` while having the left hand window focused
+/// will move the focus to the top right window
+pub fn swapFocus(manager: *Manager, arg: anytype) !void {
+    const typeInfo = @typeInfo(@TypeOf(arg));
+    if (typeInfo != .EnumLiteral) @compileError("Expected an EnumLiteral, but found a different type");
+
+    switch (arg) {
+        .left, .right, .up, .down => try manager.layout_manager.swapFocus(arg),
+        else => return error.InvalidEnum,
+    }
+}
