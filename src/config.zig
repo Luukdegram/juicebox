@@ -67,7 +67,7 @@ pub const GapOptions = struct {
 /// or by providing -Dconfig=<config_path>
 pub const default_config: Config = .{
     // enable borders and set its width
-    .border_width = 2,
+    .border_width = 1,
 
     // enable gap sizes
     .gaps = .{ .left = 4, .right = 4, .top = 4, .bottom = 4 },
@@ -193,6 +193,26 @@ pub const default_config: Config = .{
             .symbol = keys.XK_0,
             .modifier = .{ .mod4 = true, .shift = true },
             .action = .{ .function = .{ .action = actions.moveWindow, .arg = 9 } },
+        },
+        .{
+            .symbol = keys.XK_Right,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .right } },
+        },
+        .{
+            .symbol = keys.XK_Left,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .left } },
+        },
+        .{
+            .symbol = keys.XK_Up,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .up } },
+        },
+        .{
+            .symbol = keys.XK_Down,
+            .modifier = .{ .mod4 = true, .shift = true },
+            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .down } },
         },
     },
 };

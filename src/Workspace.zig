@@ -86,6 +86,14 @@ pub fn get(self: Workspace, handle: x.protocol.Types.Window) ?Window {
     return null;
 }
 
+/// Returns the index of the given window. Returns null if the window does not exist
+pub fn getIdx(self: Workspace, window: Window) ?usize {
+    for (self.items()) |w, i| {
+        if (w.handle == window.handle) return i;
+    }
+    return null;
+}
+
 /// Returns the previous window in the list for the given `window`
 pub fn prev(self: Workspace, window: Window) ?Window {
     for (self.items()) |cur, i| {
@@ -94,6 +102,13 @@ pub fn prev(self: Workspace, window: Window) ?Window {
     }
 
     return null;
+}
+
+/// Swaps two Windows within the list of items from index `from` to index `to`
+pub fn swap(self: Workspace, from: usize, to: usize) void {
+    const temp = self.windows.items[to];
+    self.windows.items[to] = self.windows.items[from];
+    self.windows.items[from] = temp;
 }
 
 /// Iterator over Windows

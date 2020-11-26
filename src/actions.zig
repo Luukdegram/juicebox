@@ -55,3 +55,16 @@ pub fn moveWindow(manager: *Manager, arg: anytype) !void {
 pub fn toggleFullscreen(manager: *Manager, arg: anytype) !void {
     try manager.layout_manager.toggleFullscreen();
 }
+
+/// Swaps the window according to the given `arg`. For example:
+/// when `arg` is `.right` swaps the focused window with the window to the right of it
+/// but only when the window is on the left hand side of the screen.
+pub fn swapWindow(manager: *Manager, arg: anytype) !void {
+    const typeInfo = @typeInfo(@TypeOf(arg));
+    if (typeInfo != .EnumLiteral) @compileError("Expected an EnumLiteral, but found a different type");
+
+    switch (arg) {
+        .left, .right, .up, .down => try manager.layout_manager.swapWindow(arg),
+        else => return error.InvalidEnum,
+    }
+}

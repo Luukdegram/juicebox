@@ -212,6 +212,39 @@ pub fn toggleFullscreen(self: *LayoutManager) !void {
     }
 }
 
+/// Swaps the focused window with the window according to the given `direction`
+/// A window must be focused, and the window must be able to be moved to the given area
+pub fn swapWindow(self: *LayoutManager, direction: enum { left, right, up, down }) !void {
+    const current = self.active();
+    const focused = current.focused orelse return;
+    const idx = current.getIdx(focused) orelse return;
+
+    switch (direction) {
+        .left => {
+            // make sure the window is not left hand side
+            if (idx == 0) return;
+            current.swap(idx, 0); // swaps with left window
+        },
+        .right => {
+            // make sure the window is not on right hand side
+            if (idx > 0) return;
+            current.swap(idx, 1);
+        },
+        .up => {
+            // make sure window is on right hand side and not top
+            if (idx < 2) return;
+            current.swap(idx, idx - 1);
+        },
+        .down => {
+            // make sure window is on right hand side and not bottom
+            if (idx == 0 or idx == current.items().len - 1) return;
+            current.swap(idx, idx + 1);
+        },
+    }
+
+    try self.remapWindows(current);
+}
+
 /// Restacks all the windows that are currently mapped on the screen
 fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
     // if only 1 window, make it full screen (with respect to borders)
