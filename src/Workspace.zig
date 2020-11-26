@@ -111,7 +111,7 @@ pub fn prev(self: Workspace, window: Window) ?Window {
 }
 
 /// Swaps two Windows within the list of items from index `from` to index `to`
-pub fn swap(self: Workspace, from: usize, to: usize) void {
+pub fn swap(self: *Workspace, from: usize, to: usize) void {
     const temp = self.windows.items[to];
     self.windows.items[to] = self.windows.items[from];
     self.windows.items[from] = temp;

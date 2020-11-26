@@ -218,6 +218,7 @@ pub fn swapWindow(self: *LayoutManager, direction: enum { left, right, up, down 
     const current = self.active();
     const focused = current.focused orelse return;
     const idx = current.getIdx(focused) orelse return;
+    const len = current.items().len;
 
     switch (direction) {
         .left => {
@@ -227,12 +228,12 @@ pub fn swapWindow(self: *LayoutManager, direction: enum { left, right, up, down 
         },
         .right => {
             // make sure the window is not on right hand side
-            if (idx > 0) return;
+            if (idx > 0 or len < 2) return;
             current.swap(idx, 1);
         },
         .up => {
             // make sure window is on right hand side and not top
-            if (idx < 2) return;
+            if (idx < 2 or len < 3) return;
             current.swap(idx, idx - 1);
         },
         .down => {
@@ -251,6 +252,7 @@ pub fn swapFocus(self: *LayoutManager, direction: enum { left, right, up, down }
     const current = self.active();
     const focused = current.focused orelse return;
     const idx = current.getIdx(focused) orelse return;
+    const len = current.items().len;
 
     switch (direction) {
         .left => {
@@ -260,12 +262,12 @@ pub fn swapFocus(self: *LayoutManager, direction: enum { left, right, up, down }
         },
         .right => {
             // make sure the window is not on right hand side
-            if (idx > 0) return;
+            if (idx > 0 or len < 2) return;
             try self.focusWindow(current.getByIdx(1));
         },
         .up => {
             // make sure window is on right hand side and not top
-            if (idx < 2) return;
+            if (idx < 2 or len < 3) return;
             try self.focusWindow(current.getByIdx(idx - 1));
         },
         .down => {
