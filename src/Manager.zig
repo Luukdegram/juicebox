@@ -159,7 +159,7 @@ fn onKeyPress(self: *Manager, event: events.InputDeviceEvent) !void {
             // found a key so execute its command
             switch (binding.action) {
                 .cmd => |cmd| return runCmd(self.gpa, cmd),
-                .function => |func| return func.action(self, func.arg),
+                .function => |func| return self.callAction(func.action, func.arg),
             }
         }
     }
@@ -244,4 +244,12 @@ fn runCmd(gpa: *Allocator, cmd: []const []const u8) !void {
     defer process.deinit();
 
     process.spawn() catch |err| log.err("Could not spawn cmd {}", .{cmd[0]});
+}
+
+/// Calls an action defined in `actions.zig`
+fn callAction(self: *Manager, action: anytype, arg: anytype) !void {
+    const Fn = @typeInfo(@TypeOf(action)).Fn;
+    const args = Fn.args;
+    if (args.len == 1) return action(self);
+    if (args.len == 2) return action(self, arg);
 }

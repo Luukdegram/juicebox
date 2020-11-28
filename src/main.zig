@@ -14,7 +14,7 @@ pub fn main() anyerror!void {
     log.info("Starting juicebox...", .{});
 
     const manager = try Manager.init(&gpa.allocator);
-    errdefer manager.deinit();
+    defer manager.deinit();
 
     log.info("Juicebox initialized", .{});
 

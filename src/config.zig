@@ -16,7 +16,7 @@ const Keysym = x11.protocol.Types.Keysym;
 /// Or use `cmd` when a shell command must be ran.
 pub const Action = union(ActionType) {
     /// The function to call on key press and the argument
-    function: struct { action: actions.Action, arg: anytype },
+    function: struct { action: anytype, arg: anytype },
     /// The shell command to execute
     cmd: []const []const u8,
 
