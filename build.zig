@@ -16,7 +16,11 @@ pub fn build(b: *Builder) void {
         );
 
         if (config_path) |path| {
-            const file = std.fs.cwd().openFile(path, .{}) catch unreachable;
+            const file = if (std.fs.path.isAbsolute(path))
+                std.fs.openFileAbsolute(path, .{}) catch unreachable
+            else
+                std.fs.cwd().openFile(path, .{}) catch unreachable;
+
             defer file.close();
             config_data = file.readToEndAlloc(b.allocator, std.math.maxInt(u64)) catch unreachable;
         }
