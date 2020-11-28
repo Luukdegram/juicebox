@@ -1,0 +1,56 @@
+# keybindinds
+
+# cmds/executables
+keybind mod4 XK_d exec dmenu_run
+keybind mod4 XK_Return exec alacritty
+
+# basic keybindings
+keybind mod4 XK_f call toggleFullscreen
+keybind mod4,shift XK_q call closeWindow
+
+# switch workspace
+keybind mod4 XK_1 call switchWorkspace 0
+keybind mod4 XK_2 call switchWorkspace 1
+keybind mod4 XK_3 call switchWorkspace 2
+keybind mod4 XK_4 call switchWorkspace 3
+keybind mod4 XK_5 call switchWorkspace 4
+keybind mod4 XK_6 call switchWorkspace 5
+keybind mod4 XK_7 call switchWorkspace 6
+keybind mod4 XK_8 call switchWorkspace 7
+keybind mod4 XK_9 call switchWorkspace 8
+keybind mod4 XK_0 call switchWorkspace 9
+
+# move window to other workspace
+keybind mod4,shift XK_1 call moveWindow 0
+keybind mod4,shift XK_2 call moveWindow 1
+keybind mod4,shift XK_3 call moveWindow 2
+keybind mod4,shift XK_4 call moveWindow 3
+keybind mod4,shift XK_5 call moveWindow 4
+keybind mod4,shift XK_6 call moveWindow 5
+keybind mod4,shift XK_7 call moveWindow 6
+keybind mod4,shift XK_8 call moveWindow 7
+keybind mod4,shift XK_9 call moveWindow 8
+keybind mod4,shift XK_0 call moveWindow 9
+
+# Swap window positions in current workspace
+keybind mod4,shift XK_Left call swapWindow left
+keybind mod4,shift XK_Right call swapWindow right
+keybind mod4,shift XK_Up call swapWindow up
+keybind mod4,shift XK_Down call swapWindow down
+
+# Focus another window based on key arrows
+keybind mod4 XK_Left call swapFocus left
+keybind mod4 XK_Right call swapFocus right
+keybind mod4 XK_Up call swapFocus up
+keybind mod4 XK_Down call swapFocus down
+
+# border settings
+border width 1
+border focused 0x014c82
+border unfocused 0x34bdeb
+
+# Amount of workspaces
+workspaces 10
+
+# gap settings: left, right, top, bottom
+gaps 4 4 4 4

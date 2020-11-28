@@ -250,6 +250,6 @@ fn runCmd(gpa: *Allocator, cmd: []const []const u8) !void {
 fn callAction(self: *Manager, action: anytype, arg: anytype) !void {
     const Fn = @typeInfo(@TypeOf(action)).Fn;
     const args = Fn.args;
-    if (args.len == 1) return action(self);
-    if (args.len == 2) return action(self, arg);
+    if (args.len == 1) try action(self);
+    if (args.len == 2) try action(self, arg);
 }

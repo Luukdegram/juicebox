@@ -1,13 +1,32 @@
-const Builder = @import("std").build.Builder;
+const std = @import("std");
+const Builder = std.build.Builder;
 
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const mode = b.standardReleaseOptions();
 
+    var config_data: ?[]const u8 = null;
+
+    // setup config options
+    {
+        const config_path = b.option(
+            []const u8,
+            "config_path",
+            "Path to configuration file. If none supplied, uses the configuration defined in `config.zig`",
+        );
+
+        if (config_path) |path| {
+            const file = std.fs.cwd().openFile(path, .{}) catch unreachable;
+            defer file.close();
+            config_data = file.readToEndAlloc(b.allocator, std.math.maxInt(u64)) catch unreachable;
+        }
+    }
+
     const exe = b.addExecutable("juicebox", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.addPackage(.{ .name = "x11", .path = "src/x11/x11.zig" });
+    exe.addBuildOption(?[]const u8, "config_data", config_data);
     exe.install();
 
     // Running the binary

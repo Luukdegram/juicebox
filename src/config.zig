@@ -3,6 +3,7 @@ const actions = @import("actions.zig");
 const keys = x11.keys;
 const input = x11.input;
 const Keysym = x11.protocol.Types.Keysym;
+const std = @import("std");
 
 //! User defined configuration of Juicebox
 //! Currently this file requires to be changed to update the configuration.
@@ -65,174 +66,177 @@ pub const GapOptions = struct {
 /// The default config when no configuration has been provided
 /// This can either be manually changed in the source code,
 /// or by providing -Dconfig=<config_path>
-pub const default_config: Config = .{
-    // enable borders and set its width
-    .border_width = 1,
+pub const default_config: Config = if (@import("build_options").config_data) |data|
+    @import("parser.zig").parseConfig(data)
+else
+    .{
+        // enable borders and set its width
+        .border_width = 1,
 
-    // enable gap sizes
-    .gaps = .{ .left = 4, .right = 4, .top = 4, .bottom = 4 },
+        // enable gap sizes
+        .gaps = .{ .left = 4, .right = 4, .top = 4, .bottom = 4 },
 
-    // define keybindings and their actions
-    .bindings = &[_]KeyBind{
-        .{
-            .symbol = keys.XK_q,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.closeWindow, .arg = {} } },
+        // define keybindings and their actions
+        .bindings = &[_]KeyBind{
+            .{
+                .symbol = keys.XK_q,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.closeWindow, .arg = {} } },
+            },
+            .{
+                .symbol = keys.XK_d,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .cmd = &[_][]const u8{"dmenu_run"} },
+            },
+            .{
+                .symbol = keys.XK_f,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.toggleFullscreen, .arg = {} } },
+            },
+            .{
+                .symbol = keys.XK_Return,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .cmd = &[_][]const u8{"alacritty"} },
+            },
+            .{
+                .symbol = keys.XK_1,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 0) } },
+            },
+            .{
+                .symbol = keys.XK_2,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 1) } },
+            },
+            .{
+                .symbol = keys.XK_3,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 2) } },
+            },
+            .{
+                .symbol = keys.XK_4,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 3) } },
+            },
+            .{
+                .symbol = keys.XK_5,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 4) } },
+            },
+            .{
+                .symbol = keys.XK_6,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 5) } },
+            },
+            .{
+                .symbol = keys.XK_7,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 6) } },
+            },
+            .{
+                .symbol = keys.XK_8,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 7) } },
+            },
+            .{
+                .symbol = keys.XK_9,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 8) } },
+            },
+            .{
+                .symbol = keys.XK_0,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 9) } },
+            },
+            .{
+                .symbol = keys.XK_1,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 0 } },
+            },
+            .{
+                .symbol = keys.XK_2,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 1 } },
+            },
+            .{
+                .symbol = keys.XK_3,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 2 } },
+            },
+            .{
+                .symbol = keys.XK_4,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 3 } },
+            },
+            .{
+                .symbol = keys.XK_5,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 4 } },
+            },
+            .{
+                .symbol = keys.XK_6,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 5 } },
+            },
+            .{
+                .symbol = keys.XK_7,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 6 } },
+            },
+            .{
+                .symbol = keys.XK_8,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 7 } },
+            },
+            .{
+                .symbol = keys.XK_9,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 8 } },
+            },
+            .{
+                .symbol = keys.XK_0,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.moveWindow, .arg = 9 } },
+            },
+            .{
+                .symbol = keys.XK_Right,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.swapWindow, .arg = .right } },
+            },
+            .{
+                .symbol = keys.XK_Left,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.swapWindow, .arg = .left } },
+            },
+            .{
+                .symbol = keys.XK_Up,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.swapWindow, .arg = .up } },
+            },
+            .{
+                .symbol = keys.XK_Down,
+                .modifier = .{ .mod4 = true, .shift = true },
+                .action = .{ .function = .{ .action = actions.swapWindow, .arg = .down } },
+            },
+            .{
+                .symbol = keys.XK_Right,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.swapFocus, .arg = .right } },
+            },
+            .{
+                .symbol = keys.XK_Left,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.swapFocus, .arg = .left } },
+            },
+            .{
+                .symbol = keys.XK_Up,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.swapFocus, .arg = .up } },
+            },
+            .{
+                .symbol = keys.XK_Down,
+                .modifier = .{ .mod4 = true },
+                .action = .{ .function = .{ .action = actions.swapFocus, .arg = .down } },
+            },
         },
-        .{
-            .symbol = keys.XK_d,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .cmd = &[_][]const u8{"dmenu_run"} },
-        },
-        .{
-            .symbol = keys.XK_f,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.toggleFullscreen, .arg = {} } },
-        },
-        .{
-            .symbol = keys.XK_Return,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .cmd = &[_][]const u8{"alacritty"} },
-        },
-        .{
-            .symbol = keys.XK_1,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 0) } },
-        },
-        .{
-            .symbol = keys.XK_2,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 1) } },
-        },
-        .{
-            .symbol = keys.XK_3,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 2) } },
-        },
-        .{
-            .symbol = keys.XK_4,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 3) } },
-        },
-        .{
-            .symbol = keys.XK_5,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 4) } },
-        },
-        .{
-            .symbol = keys.XK_6,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 5) } },
-        },
-        .{
-            .symbol = keys.XK_7,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 6) } },
-        },
-        .{
-            .symbol = keys.XK_8,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 7) } },
-        },
-        .{
-            .symbol = keys.XK_9,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 8) } },
-        },
-        .{
-            .symbol = keys.XK_0,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.switchWorkspace, .arg = @as(u4, 9) } },
-        },
-        .{
-            .symbol = keys.XK_1,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 0 } },
-        },
-        .{
-            .symbol = keys.XK_2,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 1 } },
-        },
-        .{
-            .symbol = keys.XK_3,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 2 } },
-        },
-        .{
-            .symbol = keys.XK_4,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 3 } },
-        },
-        .{
-            .symbol = keys.XK_5,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 4 } },
-        },
-        .{
-            .symbol = keys.XK_6,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 5 } },
-        },
-        .{
-            .symbol = keys.XK_7,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 6 } },
-        },
-        .{
-            .symbol = keys.XK_8,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 7 } },
-        },
-        .{
-            .symbol = keys.XK_9,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 8 } },
-        },
-        .{
-            .symbol = keys.XK_0,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.moveWindow, .arg = 9 } },
-        },
-        .{
-            .symbol = keys.XK_Right,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .right } },
-        },
-        .{
-            .symbol = keys.XK_Left,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .left } },
-        },
-        .{
-            .symbol = keys.XK_Up,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .up } },
-        },
-        .{
-            .symbol = keys.XK_Down,
-            .modifier = .{ .mod4 = true, .shift = true },
-            .action = .{ .function = .{ .action = actions.swapWindow, .arg = .down } },
-        },
-        .{
-            .symbol = keys.XK_Right,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .right } },
-        },
-        .{
-            .symbol = keys.XK_Left,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .left } },
-        },
-        .{
-            .symbol = keys.XK_Up,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .up } },
-        },
-        .{
-            .symbol = keys.XK_Down,
-            .modifier = .{ .mod4 = true },
-            .action = .{ .function = .{ .action = actions.swapFocus, .arg = .down } },
-        },
-    },
-};
+    };

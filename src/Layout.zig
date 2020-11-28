@@ -292,7 +292,7 @@ fn remapWindows(self: *LayoutManager, workspace: *Workspace) !void {
     // get configured border sizes, orelse 0
     const border_width = config.border_width orelse 0;
     // get configured gaps, orelse defaults (all 0)
-    const gaps = config.gaps orelse @import("config").GapOptions{};
+    const gaps = config.gaps orelse @import("config.zig").GapOptions{};
 
     if (workspace.items().len == 1) {
         try workspace.items()[0].configure(mask, .{
