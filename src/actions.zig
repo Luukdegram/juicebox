@@ -64,3 +64,10 @@ pub fn swapFocus(manager: *Manager, comptime arg: @Type(.EnumLiteral)) !void {
         else => return error.InvalidEnum,
     }
 }
+
+/// Makes the focused window available in all workspaces
+/// or removes it from all other workspaces than the current one
+/// when unpinning
+pub fn pinFocus(manager: *Manager) !void {
+    try manager.layout_manager.pinFocus();
+}

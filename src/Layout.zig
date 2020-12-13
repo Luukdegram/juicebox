@@ -100,22 +100,23 @@ pub fn mapWindow(self: *LayoutManager, window: Window) !void {
 /// When a destroy notify is triggered or when a user explicitly wants to close a window
 /// this can be called to close it and also remove its reference from the workspace
 pub fn closeWindow(self: *LayoutManager, handle: x.protocol.Types.Window) !void {
-    const workspace = self.find(handle) orelse return;
+    for (self.workspaces) |*workspace, i| {
+        if (!workspace.contains(handle)) continue;
+        // remove it from the workspace we found
+        const deleted = workspace.remove(handle).?;
 
-    // remove it from the workspace we found
-    const deleted = workspace.remove(handle).?;
-
-    // If the deleted window was focused, focus the first window on the workspace
-    if (workspace.focused) |focused| {
-        workspace.focused = null;
-        if (focused.handle == deleted.handle and workspace.prev(focused) != null) {
-            try self.focusWindow(workspace.prev(focused).?);
+        // If the deleted window was focused, focus the first window on the workspace
+        if (workspace.focused) |focused| {
+            workspace.focused = null;
+            if (focused.handle == deleted.handle and workspace.prev(focused) != null) {
+                try self.focusWindow(workspace.prev(focused).?);
+            }
         }
+
+        try self.remapWindows(workspace);
+
+        log.debug("Closed window {d}, from workspace {d}", .{ handle, i });
     }
-
-    try self.remapWindows(workspace);
-
-    log.debug("Closed window {d}", .{handle});
 }
 
 /// Focuses the window and sets the focused-border-colour if border_width is set on the user config
@@ -275,6 +276,25 @@ pub fn swapFocus(self: *LayoutManager, direction: enum { left, right, up, down }
             if (idx == 0 or idx == current.items().len - 1) return;
             try self.focusWindow(current.getByIdx(idx + 1));
         },
+    }
+}
+
+/// Pins or unpin the focused window by making it available in all workspaces
+/// or only the current workspace when unpinning
+pub fn pinFocus(self: *LayoutManager) !void {
+    const focused = self.active().focused orelse return;
+
+    for (self.workspaces) |*ws, i| {
+        if (ws == self.active()) continue; //skip for current workspace
+
+        if (ws.getIdx(focused)) |idx| {
+            _ = ws.remove(focused.handle);
+            log.debug("Unpinned from workspace {d}", .{i});
+        } else {
+            try ws.add(self.gpa, focused);
+            ws.focused = focused;
+            log.debug("Pinned to workspace {d}", .{i});
+        }
     }
 }
 
