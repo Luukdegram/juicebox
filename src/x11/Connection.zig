@@ -11,7 +11,7 @@ const Connection = @This();
 //! and read requests to/from X11. It also contains the authentication with the protocol
 
 /// Handle to the socket of the X connection
-handle: fs.File,
+stream: std.net.Stream,
 /// Allocator used to allocate setup data
 gpa: *Allocator,
 /// setup information such as base and mask. Needed to generate Xid's
@@ -155,7 +155,7 @@ pub fn reader(self: *Connection) std.io.Reader(*Connection, ReadError, read) {
 }
 
 fn read(self: *Connection, buffer: []u8) ReadError!usize {
-    return self.handle.read(buffer);
+    return std.os.read(self.stream.handle, buffer);
 }
 
 /// Sends data to the X11 server
@@ -163,9 +163,9 @@ fn read(self: *Connection, buffer: []u8) ReadError!usize {
 /// for better performance, and easier counting of total request size
 pub fn send(self: *const Connection, data: anytype) !void {
     if (@TypeOf(data) == []const u8 or @TypeOf(data) == []u8) {
-        try self.handle.writeAll(data);
+        try self.stream.writer().writeAll(data);
     } else {
-        try self.handle.writeAll(mem.asBytes(&data));
+        try self.stream.writer().writeAll(mem.asBytes(&data));
     }
 }
 
@@ -182,7 +182,7 @@ pub fn deinit(self: *Connection) void {
         self.gpa.free(screen.depths);
     }
     self.gpa.free(self.screens);
-    self.handle.close();
+    self.stream.close();
 }
 
 /// Gets a named Atom from the X11 server
@@ -211,7 +211,7 @@ fn supportsExtension(self: *Connection, ext_name: []const u8) !bool {
     try self.send(ext_name);
     try self.send(request.pad1);
 
-    const reply = try self.handle.reader().readStruct(protocol.QueryExtensionReply);
+    const reply = try self.stream.reader().readStruct(protocol.QueryExtensionReply);
 
     return reply.present != 0;
 }
@@ -258,7 +258,7 @@ fn openDisplay(gpa: *Allocator, name: []const u8) !Connection {
     }
 
     // open connection to host if set, else connect with unix socket
-    const file = if (display.host.len != 0) blk: {
+    const stream = if (display.host.len != 0) blk: {
         const port: u16 = 6000 + @intCast(u16, display.display);
         const address = try std.net.Address.parseIp(display.host, port);
         break :blk try std.net.tcpConnectToAddress(address);
@@ -268,16 +268,16 @@ fn openDisplay(gpa: *Allocator, name: []const u8) !Connection {
         break :blk try std.net.connectUnixSocket(socket_path);
     };
 
-    errdefer file.close();
+    errdefer stream.close();
 
-    var auth = authenticate(gpa, file, display.display) catch |e| switch (e) {
+    var auth = authenticate(gpa, stream, display.display) catch |e| switch (e) {
         error.WouldBlock => unreachable,
         error.OperationAborted => unreachable,
         else => return ConnectionError.ConnectionFailed,
     };
     defer auth.deinit(gpa);
 
-    return connect(gpa, file, auth) catch |err| switch (err) {
+    return connect(gpa, stream, auth) catch |err| switch (err) {
         error.WouldBlock => unreachable,
         error.OperationAborted => unreachable,
         error.DiskQuota => unreachable,
@@ -308,7 +308,7 @@ const Auth = struct {
 
 /// Authenticates with the X11 server by retrieving the authentication
 /// details from the environment
-fn authenticate(gpa: *Allocator, sock: fs.File, display: u32) !Auth {
+fn authenticate(gpa: *Allocator, sock: std.net.Stream, display: u32) !Auth {
     const xau_file = if (os.getenv("XAUTHORITY")) |xau_file_name| blk: {
         break :blk try fs.openFileAbsolute(xau_file_name, .{});
     } else blk: {
@@ -358,9 +358,9 @@ fn authenticate(gpa: *Allocator, sock: fs.File, display: u32) !Auth {
 
 /// creates a new `Connection` and writes the screen setup to the server
 /// and then reads and parses it from the response
-fn connect(gpa: *Allocator, file: fs.File, auth: Auth) !Connection {
+fn connect(gpa: *Allocator, stream: std.net.Stream, auth: Auth) !Connection {
     var conn = Connection{
-        .handle = file,
+        .stream = stream,
         .gpa = gpa,
         .setup = undefined,
         .formats = undefined,
