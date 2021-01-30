@@ -167,6 +167,8 @@ pub fn switchTo(self: *LayoutManager, idx: usize) !void {
     if (self.active().focused) |focused| try self.focusWindow(focused);
 
     log.debug("Switch to workspace {d}", .{idx});
+
+    try self.remapWindows(self.active());
 }
 
 /// Moves a `Window` `window` to workspace `idx`
