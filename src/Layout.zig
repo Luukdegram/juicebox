@@ -5,7 +5,7 @@ const Workspace = @import("Workspace.zig");
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
 const events = x.events;
-const log = std.log.scoped(.juicebox_layout);
+const log = std.log.scoped(.juicebox);
 
 const LayoutManager = @This();
 
@@ -102,20 +102,21 @@ pub fn mapWindow(self: *LayoutManager, window: Window) !void {
 pub fn closeWindow(self: *LayoutManager, handle: x.protocol.Types.Window) !void {
     for (self.workspaces) |*workspace, i| {
         if (!workspace.contains(handle)) continue;
-        // remove it from the workspace we found
-        const deleted = workspace.remove(handle).?;
 
         // If the deleted window was focused, focus the first window on the workspace
         if (workspace.focused) |focused| {
             workspace.focused = null;
-            if (focused.handle == deleted.handle and workspace.prev(focused) != null) {
+            if (focused.handle == handle and workspace.prev(focused) != null) {
                 try self.focusWindow(workspace.prev(focused).?);
             }
         }
 
+        // remove it from the workspace we found
+        _ = workspace.remove(handle).?;
+
         try self.remapWindows(workspace);
 
-        log.debug("Closed window {d}, from workspace {d}", .{ handle, i });
+        log.debug("Closed window {d} from workspace {d}", .{ handle, i });
     }
 }
 

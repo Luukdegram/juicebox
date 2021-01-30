@@ -2,7 +2,7 @@ const std = @import("std");
 const x = @import("x11");
 const config = @import("config.zig").default_config;
 const LayoutManager = @import("Layout.zig");
-const log = std.log.scoped(.juicebox_manager);
+const log = std.log.scoped(.juicebox);
 const Connection = x.Connection;
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
@@ -128,9 +128,6 @@ pub fn run(self: *Manager) !void {
 /// Handles all events received from X11
 fn handleEvent(self: *Manager, buffer: [32]u8) !void {
     const event = events.Event.fromBytes(buffer);
-
-    log.debug("EVENT: {}", .{@tagName(std.meta.activeTag(event))});
-
     switch (event) {
         .key_press => |key| try self.onKeyPress(key),
         .map_request => |map| try self.onMap(map),
@@ -146,7 +143,6 @@ fn handleEvent(self: *Manager, buffer: [32]u8) !void {
 fn handleError(self: *Manager, buffer: [32]u8) !void {
     const err = errors.Error.fromBytes(buffer);
     log.err("ERROR: {s}", .{@tagName(err.code)});
-    log.debug("Error details: {}", .{err});
 }
 
 /// Handles when a user presses a user-defined key binding
@@ -243,7 +239,7 @@ fn runCmd(gpa: *Allocator, cmd: []const []const u8) !void {
     var process = try std.ChildProcess.init(cmd, gpa);
     defer process.deinit();
 
-    process.spawn() catch |err| log.err("Could not spawn cmd {}", .{cmd[0]});
+    process.spawn() catch |err| log.err("Could not spawn cmd {s}", .{cmd[0]});
 }
 
 /// Calls an action defined in `actions.zig`
