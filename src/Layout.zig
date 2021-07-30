@@ -1,3 +1,6 @@
+//! This contains the layour manager. It is being called by the
+//! Manager whenever a new window is created/updated/removed to ensure
+//! all windows align with the selected layout rules.
 const std = @import("std");
 const x = @import("x11");
 const config = @import("config.zig").default_config;
@@ -8,10 +11,6 @@ const events = x.events;
 const log = std.log.scoped(.juicebox);
 
 const LayoutManager = @This();
-
-//! This contains the layour manager. It is being called by the
-//! Manager whenever a new window is created/updated/removed to ensure
-//! all windows align with the selected layout rules.
 
 /// Array of type `Workspace`
 const Workspaces = [config.workspaces]Workspace;
@@ -290,7 +289,7 @@ pub fn pinFocus(self: *LayoutManager) !void {
     for (self.workspaces) |*ws, i| {
         if (ws == self.active()) continue; //skip for current workspace
 
-        if (ws.getIdx(focused)) |idx| {
+        if (ws.getIdx(focused)) |_| {
             _ = ws.remove(focused.handle);
             log.debug("Unpinned from workspace {d}", .{i});
         } else {

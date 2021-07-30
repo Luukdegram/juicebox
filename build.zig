@@ -29,7 +29,7 @@ pub fn build(b: *Builder) void {
     const exe = b.addExecutable("juicebox", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    exe.addPackage(.{ .name = "x11", .path = "src/x11/x11.zig" });
+    exe.addPackage(.{ .name = "x11", .path = .{ .path = "src/x11/x11.zig" } });
     exe.addBuildOption(?[]const u8, "config_data", config_data);
     exe.install();
 

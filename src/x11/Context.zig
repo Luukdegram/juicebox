@@ -1,8 +1,7 @@
+//! Graphics Context. Used to draw on a window.
 const x = @import("protocol.zig");
 const Connection = @import("Connection.zig");
 const os = @import("std").os;
-
-//! Graphics Context. Used to draw on a window.
 
 /// Creates a new context and returns its id
 /// `root` is the xid of the window that owns the graphics context

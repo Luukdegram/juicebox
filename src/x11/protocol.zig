@@ -3,7 +3,7 @@
 //! to ease the process of working with the X11 protocol
 
 /// All constant that belong to updating Window attributes
-pub const WindowAttributes = extern enum(u32) {
+pub const WindowAttributes = enum(u32) {
     back_pixmap = 1,
     back_pixel = 2,
     border_pixmap = 4,
@@ -170,7 +170,7 @@ pub const ValueMask = struct {
 };
 
 pub const SetupRequest = extern struct {
-    byte_order: u8 = if (@import("std").builtin.endian == .Big) 0x42 else 0x6c,
+    byte_order: u8 = if (@import("std").builtin.target.cpu.arch.endian() == .Big) 0x42 else 0x6c,
     pad0: u8 = 0,
     major_version: u16 = 11,
     minor_version: u16 = 0,

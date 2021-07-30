@@ -1,3 +1,5 @@
+//! The `Manager` is the heart of Juicebox. It manages all window creation,
+//! event handling, and initialization of everything.
 const std = @import("std");
 const x = @import("x11");
 const config = @import("config.zig").default_config;
@@ -12,9 +14,6 @@ const events = x.events;
 const errors = x.errors;
 
 const Manager = @This();
-
-//! The `Manager` is the heart of Juicebox. It manages all window creation,
-//! event handling, and initialization of everything.
 
 /// Handle to our X11 connection. Required to communciate with the X11 server
 connection: *Connection,
@@ -141,6 +140,7 @@ fn handleEvent(self: *Manager, buffer: [32]u8) !void {
 /// Prints the error details from X11
 /// TODO: Exit Juicebox as it's a developer error
 fn handleError(self: *Manager, buffer: [32]u8) !void {
+    _ = self;
     const err = errors.Error.fromBytes(buffer);
     log.err("ERROR: {s}", .{@tagName(err.code)});
 }
@@ -239,7 +239,7 @@ fn runCmd(gpa: *Allocator, cmd: []const []const u8) !void {
     var process = try std.ChildProcess.init(cmd, gpa);
     defer process.deinit();
 
-    process.spawn() catch |err| log.err("Could not spawn cmd {s}", .{cmd[0]});
+    process.spawn() catch log.err("Could not spawn cmd {s}", .{cmd[0]});
 }
 
 /// Calls an action defined in `actions.zig`

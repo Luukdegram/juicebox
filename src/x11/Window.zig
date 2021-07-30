@@ -1,3 +1,6 @@
+//! Window management module. Allows for creation, updating and removing of windows
+//! A window also has a reference to the connection that was used to create the window
+//! to remove the need to pass around the connection everywhere
 const x = @import("protocol.zig");
 const Connection = @import("Connection.zig");
 const Context = @import("Context.zig");
@@ -6,10 +9,6 @@ const os = std.os;
 const mem = std.mem;
 
 const Window = @This();
-
-//! Window management module. Allows for creation, updating and removing of windows
-//! A window also has a reference to the connection that was used to create the window
-//! to remove the need to pass around the connection everywhere
 
 /// Xid of the window, used to update settings etc.
 handle: x.Types.Window,
@@ -49,7 +48,6 @@ const WindowClass = enum(u16) {
 /// For now it creates a window with a black background
 pub fn create(conn: *Connection, screen: Connection.Screen, options: CreateWindowOptions) !Window {
     const xid = try conn.genXid();
-    const writer = conn.handle.writer();
 
     const mask: u32 = blk: {
         var tmp: u32 = 0;
@@ -116,7 +114,6 @@ pub fn changeProperty(
     data: Property,
 ) !void {
     const total_length: u16 = @intCast(u16, @sizeOf(x.ChangePropertyRequest) + data.len() + xpad(data.len())) / 4;
-    const writer = self.connection.handle.writer();
 
     std.debug.assert(switch (data) {
         .int => prop_type == .integer,

@@ -1,12 +1,11 @@
+//! A workspace is a list of Windows being displayed on a monitor
+//! in a specific windowing mode. Multiple workspaces can exist
 const std = @import("std");
 const x = @import("x11");
 const Window = x.Window;
 const Allocator = std.mem.Allocator;
 
 const Workspace = @This();
-
-//! A workspace is a list of Windows being displayed on a monitor
-//! in a specific windowing mode. Multiple workspaces can exist
 
 /// Unmanaged Arraylist of type `Window`
 const WindowList = std.ArrayListUnmanaged(Window);

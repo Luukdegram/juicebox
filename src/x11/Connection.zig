@@ -1,3 +1,5 @@
+//! Connection holds a socket connection to X11 and allows to write
+//! and read requests to/from X11. It also contains the authentication with the protocol
 const std = @import("std");
 const protocol = @import("protocol.zig");
 const Allocator = std.mem.Allocator;
@@ -6,9 +8,6 @@ const os = std.os;
 const fs = std.fs;
 
 const Connection = @This();
-
-//! Connection holds a socket connection to X11 and allows to write
-//! and read requests to/from X11. It also contains the authentication with the protocol
 
 /// Handle to the socket of the X connection
 stream: std.net.Stream,
@@ -270,7 +269,7 @@ fn openDisplay(gpa: *Allocator, name: []const u8) !Connection {
 
     errdefer stream.close();
 
-    var auth = authenticate(gpa, stream, display.display) catch |e| switch (e) {
+    var auth = authenticate(gpa) catch |e| switch (e) {
         error.WouldBlock => unreachable,
         error.OperationAborted => unreachable,
         else => return ConnectionError.ConnectionFailed,
@@ -308,7 +307,7 @@ const Auth = struct {
 
 /// Authenticates with the X11 server by retrieving the authentication
 /// details from the environment
-fn authenticate(gpa: *Allocator, sock: std.net.Stream, display: u32) !Auth {
+fn authenticate(gpa: *Allocator) !Auth {
     const xau_file = if (os.getenv("XAUTHORITY")) |xau_file_name| blk: {
         break :blk try fs.openFileAbsolute(xau_file_name, .{});
     } else blk: {
